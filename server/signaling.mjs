@@ -244,6 +244,23 @@ class SignalingHub {
       case 'viewer-leave': {
         return;
       }
+      case 'region-want': {
+        // A viewer opts in to the focus-region track. The presenter uses this
+        // to decide whether to attach the region stream at all: a viewer that
+        // stays on whole-screen does not make the presenter pay the extra
+        // encode. The reverse message (want=false) is what makes "switch back
+        // to full screen" release the track instead of leaving it running.
+        if (peer.role !== 'viewer') return;
+        const presenter = room.peers.get(room.presenterId);
+        if (!presenter) return;
+        this.send(presenter.ws, {
+          t: 'region-want',
+          viewerId: peer.id,
+          want: !!msg.want,
+        });
+        room.addEvent('region-want', { viewerId: peer.id, want: !!msg.want });
+        return;
+      }
       default:
         return;
     }

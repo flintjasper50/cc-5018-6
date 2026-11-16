@@ -242,6 +242,110 @@ if (cropFiles.length) {
   );
 }
 
+// --- focus region ---------------------------------------------------------
+// The region mode has two claims that must be measured, not asserted:
+//  1. it costs more bandwidth than the full-screen strategy (how much);
+//  2. it delivers materially more detail for the selected content.
+// Both numbers below come from the run's recorded samples and received crops.
+const region = read('region');
+if (region) {
+  const c = region.conclusion || {};
+  const plan = region.correctness?.presenter?.plan;
+  const cmp = region.correctness?.presenter?.comparison;
+  console.log('\n## focus region (重点区域)');
+  console.log(
+    `  selection ${plan ? `${plan.crop.w}x${plan.crop.h} → encoded ${plan.encW}x${plan.encH}` : '—'}` +
+      `   coverage ${plan ? (plan.coverage * 100).toFixed(0) + '%' : '—'}` +
+      `   engine ${region.correctness?.presenter?.engine ?? '—'}`,
+  );
+  console.log(
+    `  same content in full stream: ${c.fullAtSameContent ?? '—'}` +
+      `   (full stream encoded ${c.fullEncodedAtSample ?? '—'})` +
+      `   linear gain ${fmt(c.linearGain, 2)}×` +
+      `   native fill ${cmp ? (cmp.nativeFill * 100).toFixed(0) + '%' : '—'}`,
+  );
+  console.log(
+    `  measured kbps: full-only ${fmt(c.measuredKbps?.fullOnly)}` +
+      `   full ${fmt(c.measuredKbps?.full)}` +
+      `   region ${fmt(c.measuredKbps?.region)}` +
+      `   total ${fmt(c.measuredKbps?.total)}` +
+      `   cost ×${fmt(c.costRatio, 2)}`,
+  );
+  const rd = region.highDensity?.region?.measured;
+  if (rd) {
+    console.log(
+      `  region encode @1400kbps cap: ${rd.encodedWidth}x${rd.encodedHeight} @ ${fmt(rd.encodeFps, 1)} fps` +
+        `   ${fmt(rd.kbps)} kbps  bpp ${fmt(rd.bpp, 3)}` +
+        `   queue ${fmt(rd.queueDelayMs, 1)} ms  limit ${rd.qualityLimitation ?? '—'}`,
+    );
+  }
+  const sharp = region.highDensity?.sharpness;
+  if (sharp?.region && sharp?.fullSameCrop) {
+    console.log(
+      `  high-density source: full rung ${region.highDensity.constrainedRung ?? '—'}` +
+        ` (encoded ${region.highDensity.constrainedEncoded ?? '—'})` +
+        `   detail(region)=${fmt(sharp.region.detail, 2)}` +
+        ` vs detail(full, same area)=${fmt(sharp.fullSameCrop.detail, 2)}` +
+        `   → ×${fmt(region.highDensity.sharpnessRatio, 2)}` +
+        ` (both compared at ${sharp.region.compared})`,
+    );
+  }
+  const corr = region.correspondence || {};
+  console.log(
+    `  marker in received region: ${corr.inRegion ? 'found' : 'MISSING'}` +
+      `   offset ${corr.dRegion == null ? '—' : fmt(corr.dRegion, 3) + ' of crop'}` +
+      `   outside-selection marker: ${corr.outsideInRegion ? 'LEAKED' : 'excluded'}`,
+  );
+  const rf = region.viewerFullscreen || {};
+  console.log(
+    `  viewer → full screen: dropped=${c.viewerDroppedTrack}` +
+      `   flowing before drop=${c.regionWasFlowing}` +
+      `   region bytes before ${fmt(rf.bytes?.regionDeltaBeforeDrop)}` +
+      ` → after ${fmt(rf.bytes?.regionDeltaLast3s)} (3 s windows)` +
+      `   full stream still ${fmt(rf.bytes?.fullDeltaLast3s)}`,
+  );
+  const cl = region.contentLost || {};
+  console.log(
+    `  content moved out: paused=${c.contentLostPaused}` +
+      `   region bytes after pause ${fmt(cl.regionByteDeltaAfterPause)}` +
+      `   resumed on return=${c.contentRestoredResumed}`,
+  );
+  const rs = region.resize || {};
+  console.log(
+    `  capture resize: ${rs.captureBefore?.width}x${rs.captureBefore?.height}` +
+      ` → ${rs.captureAfter?.width}x${rs.captureAfter?.height}` +
+      `   crop ${rs.before?.plan?.crop ? `${rs.before.plan.crop.w}x${rs.before.plan.crop.h}` : '—'}` +
+      ` → ${rs.after?.plan?.crop ? `${rs.after.plan.crop.w}x${rs.after.plan.crop.h}` : '—'}` +
+      `   re-projected=${c.resizeRecomputed}`,
+  );
+  const bd = region.boundary || {};
+  console.log(
+    `  selection past the edge: requested ${bd.plan?.normalized ? `${Math.round(bd.plan.normalized.w * 100)}% wide` : '—'}` +
+      `   sent ${bd.plan?.plan?.crop ? `${bd.plan.plan.crop.w}x${bd.plan.plan.crop.h}` : '—'}` +
+      `   anomalies ${(bd.plan?.anomalies ?? []).map((a) => a.code).join(', ') || 'none'}`,
+  );
+  const rr = region.rapidReselect || {};
+  console.log(
+    `  rapid re-selection: one region m-line=${c.singleRegionSender}` +
+      `   region mid ${rr.debug?.regionMid ?? '—'}` +
+      `   final crop ${rr.track?.plan?.crop ? `${rr.track.plan.crop.w}x${rr.track.plan.crop.h}` : '—'}`,
+  );
+  const sc = region.sourceClose || {};
+  console.log(
+    `  source closed: presenter ${sc.presenter}` +
+      `   viewer ${sc.viewer}` +
+      `   region track detached=${!sc.regionDebug?.regionSenderHasTrack}` +
+      `   frames stop=${c.sourceCloseClean}`,
+  );
+  console.log(
+    '  kbps are measured from outbound-rtp bytesSent on each m-line, not from\n' +
+      '  the encoder ceiling. detail() resamples both received crops to the same\n' +
+      '  output width before measuring edge energy, so a larger region cannot win\n' +
+      '  just by having more pixels; the full-stream figure is the same physical\n' +
+      '  area cut out of the received full frame.',
+  );
+}
+
 // --- states ---------------------------------------------------------------
 const states = read('states');
 if (states) {

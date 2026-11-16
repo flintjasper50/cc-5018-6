@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
+import { PNG } from 'pngjs';
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 export const BASE = process.env.BASE_URL || 'http://127.0.0.1:8080';
@@ -138,7 +139,7 @@ export async function openPresenter(browser, { room, ice = 'relay', startLadder 
   return { ctx, page, errors };
 }
 
-export async function openViewer(browser, { room, ice = 'relay', t0Wall, strip, text, screen, name = '观看者' }) {
+export async function openViewer(browser, { room, ice = 'relay', t0Wall, strip, text, screen, region = false, name = '观看者' }) {
   const ctx = await browser.newContext({
     viewport: { width: 1500, height: 950 },
   });
@@ -153,6 +154,7 @@ export async function openViewer(browser, { room, ice = 'relay', t0Wall, strip, 
   if (strip) q.set('strip', strip);
   if (text) q.set('text', text);
   if (screen) q.set('screen', screen);
+  if (region) q.set('region', '1');
   await page.goto(`${BASE}/viewer.html?${q}`);
   await page.waitForFunction(() => !!window.__viewer, null, { timeout: 15000 });
   return { ctx, page, errors };
@@ -198,6 +200,128 @@ export function saveDataUrl(file, dataUrl) {
   const buf = Buffer.from(b64, 'base64');
   fs.writeFileSync(file, buf);
   return buf.length;
+}
+
+// --- focus-region verification -------------------------------------------
+// The fixture (the real shared screen) draws a solid red block at a known
+// page position. The presenter's selection is a screen rectangle, so the block
+// has a predictable position inside the region crop. Finding it in the
+// *received* region image proves that what the viewer decodes is the content
+// under the selection box - not a cached frame, a neighbouring crop, or an
+// upscaled full-screen picture.
+export async function drawFixtureMarker(fixPage, { x, y, size = 26 } = {}) {
+  return fixPage.evaluate(
+    ({ x, y, size }) => window.__fixture.markAt(x, y, size),
+    { x, y, size },
+  );
+}
+
+export async function clearFixtureMarker(fixPage) {
+  return fixPage.evaluate(() => window.__fixture.clearMark());
+}
+
+// Find the red block in a PNG buffer; returns its centroid in 0..1 of the
+// image. Requires a saturated red cluster, so ordinary code/chart colours
+// (which are never that red) cannot produce a false positive.
+export function findRedMarker(buf) {
+  const png = PNG.sync.read(buf);
+  let sx = 0;
+  let sy = 0;
+  let n = 0;
+  let minX = png.width;
+  let maxX = 0;
+  let minY = png.height;
+  let maxY = 0;
+  for (let y = 0; y < png.height; y++) {
+    for (let x = 0; x < png.width; x++) {
+      const i = (y * png.width + x) * 4;
+      const r = png.data[i];
+      const g = png.data[i + 1];
+      const b = png.data[i + 2];
+      if (r > 170 && g < 100 && b < 100) {
+        sx += x;
+        sy += y;
+        n++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!n) return null;
+  return {
+    x: sx / n / png.width,
+    y: sy / n / png.height,
+    pixels: n,
+    spanX: (maxX - minX + 1) / png.width,
+    spanY: (maxY - minY + 1) / png.height,
+    imgW: png.width,
+    imgH: png.height,
+  };
+}
+
+// Compare the same physical content as delivered by the two strategies.
+//
+// Both images are resampled to the *same output width* first, so the
+// comparison answers "how sharp does this content look at the same size on
+// the viewer's screen", not "which image has more pixels". Resampling the
+// full-frame crop up cannot invent detail - it stays smooth - while the region
+// crop already carries native pixels and stays sharp. That is exactly the
+// difference a viewer experiences when they look at the selected area.
+export function pngDetail(buf, targetWidth = 720) {
+  const png = PNG.sync.read(buf);
+  const { width, height, data } = png;
+  if (width < 8 || height < 8) return null;
+  const outW = Math.max(8, Math.min(2048, Math.round(targetWidth)));
+  const outH = Math.max(8, Math.round((outW * height) / width));
+  const lum = new Float32Array(outW * outH);
+  // Bilinear sample of the luminance plane.
+  for (let y = 0; y < outH; y++) {
+    const sy = ((y + 0.5) * height) / outH - 0.5;
+    const y0 = Math.max(0, Math.floor(sy));
+    const y1 = Math.min(height - 1, y0 + 1);
+    const fy = Math.max(0, Math.min(1, sy - y0));
+    for (let x = 0; x < outW; x++) {
+      const sx = ((x + 0.5) * width) / outW - 0.5;
+      const x0 = Math.max(0, Math.floor(sx));
+      const x1 = Math.min(width - 1, x0 + 1);
+      const fx = Math.max(0, Math.min(1, sx - x0));
+      const l = (px, py) => {
+        const p = (py * width + px) * 4;
+        return 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
+      };
+      const top = l(x0, y0) * (1 - fx) + l(x1, y0) * fx;
+      const bot = l(x0, y1) * (1 - fx) + l(x1, y1) * fx;
+      lum[y * outW + x] = top * (1 - fy) + bot * fy;
+    }
+  }
+  let sum = 0;
+  let n = 0;
+  for (let y = 1; y < outH; y++) {
+    for (let x = 1; x < outW; x++) {
+      const i = y * outW + x;
+      sum += Math.abs(lum[i] - lum[i - 1]) + Math.abs(lum[i] - lum[i - outW]);
+      n += 2;
+    }
+  }
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of lum) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return {
+    source: `${width}x${height}`,
+    compared: `${outW}x${outH}`,
+    detail: n ? sum / n : null,
+    contrast: max - min,
+  };
+}
+
+export function dataUrlDetail(dataUrl, targetWidth) {
+  if (!dataUrl) return null;
+  return pngDetail(Buffer.from(dataUrl.split(',')[1], 'base64'), targetWidth);
 }
 
 export function pct(values, q) {

@@ -114,6 +114,18 @@
     background: #fff;
   }
   #calib { width: 592px; height: 112px; }
+  /* Harness marker: a saturated red block at a known page position. It is the
+     ground truth used to check that a received region crop really shows the
+     content under the presenter's selection. */
+  #mark {
+    position: absolute;
+    background: #ff0000;
+    z-index: 60;
+    display: none;
+    pointer-events: none;
+  }
+  body.high-zoom #code { font-size: 8px; line-height: 11px; padding-left: 44px; }
+  body.high-zoom #code .ln { width: 34px; font-size: 7px; }
 </style>
 </head>
 <body>
@@ -138,6 +150,7 @@
 </aside>
 
 <div id="calib-wrap"><canvas id="calib" width="592" height="112"></canvas></div>
+<div id="mark"></div>
 
 <script type="module">
 import {
@@ -393,6 +406,32 @@ window.__fixture = {
     baseRow = Math.floor(scrollY / lineHeight);
     paintRows(baseRow);
     applyScrollPosition();
+  },
+  // Harness ground truth: a saturated red block at a known page position.
+  // `markAt` uses page coordinates; the caller converts from screen space
+  // using the same origin it uses for the selection rect.
+  markAt(x, y, size = 26) {
+    const el = document.getElementById('mark');
+    el.style.left = `${Math.round(x)}px`;
+    el.style.top = `${Math.round(y)}px`;
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+    el.style.display = 'block';
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, w: r.width, h: r.height };
+  },
+  clearMark() {
+    document.getElementById('mark').style.display = 'none';
+    return true;
+  },
+  // Emulate a high pixel-density source: glyphs shrink within the same row
+  // pitch, so a region crop must carry far more detail than the full-screen
+  // rung does for the text to stay legible.
+  setHighZoom(on) {
+    document.body.classList.toggle('high-zoom', !!on);
+    applyScrollPosition();
+    scrollPill.textContent = `scroll: ${Math.round(scrollY)} px${on ? ' · 高缩放源' : ''}`;
+    return { highZoom: !!on, codeFontPx: on ? 8 : 12, rowPx: lineHeight };
   },
   state() {
     return {

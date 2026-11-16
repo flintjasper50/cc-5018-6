@@ -24,3 +24,6 @@ __pycache__/
 .env
 .env.*
 .run/
+
+# Local screen-capture experiments and recovery probes
+/.scratch/

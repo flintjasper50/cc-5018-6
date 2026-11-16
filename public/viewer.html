@@ -67,9 +67,66 @@
     position: relative;
     background: #000;
     display: grid;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+  }
+  #full-wrap {
+    position: relative;
+    min-height: 0;
+    display: grid;
     place-items: center;
     overflow: hidden;
   }
+  #region-pane {
+    display: none;
+    border-top: 1px solid var(--line);
+    background: #05080c;
+    padding: 8px 10px 10px;
+    max-height: 46%;
+    overflow: hidden;
+  }
+  #stage.region-view #region-pane { display: block; }
+  #region-pane .head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  #region-pane .head b { color: var(--ink); }
+  #region-pane .head .spacer { flex: 1; }
+  #region-video {
+    max-width: 100%;
+    max-height: calc(46vh - 60px);
+    display: block;
+    margin: 0 auto;
+    background: #000;
+    image-rendering: pixelated;
+  }
+  #region-empty {
+    display: none;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 18px;
+  }
+  #stage.region-view.no-region #region-video { display: none; }
+  #stage.region-view.no-region #region-empty { display: block; }
+  #region-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 4;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--ok);
+    color: #9ae6a2;
+    background: rgba(8, 20, 12, .82);
+    font-size: 11px;
+    display: none;
+  }
+  #region-badge.show { display: block; }
   #remote {
     max-width: 100%;
     max-height: 100%;
@@ -88,6 +145,7 @@
     padding: 24px;
     background: rgba(5, 8, 12, .92);
     backdrop-filter: blur(2px);
+    z-index: 6;
   }
   #overlay.hidden { display: none; }
   #overlay .box { max-width: 620px; }
@@ -228,7 +286,20 @@
 </header>
 
 <section id="stage">
-  <video id="remote" autoplay muted playsinline></video>
+  <div id="full-wrap">
+    <video id="remote" autoplay muted playsinline></video>
+    <div id="region-badge">● 重点区域高清</div>
+  </div>
+  <div id="region-pane">
+    <div class="head">
+      <b>重点区域</b>
+      <span id="region-meta">—</span>
+      <span class="spacer"></span>
+      <button id="region-toggle" style="padding:3px 9px;font-size:11px">只看整屏</button>
+    </div>
+    <video id="region-video" autoplay muted playsinline></video>
+    <div id="region-empty">演示者未选择重点区域，或区域轨道已停止。</div>
+  </div>
   <div id="stale-badge">画面已暂停更新 · 当前不是实时画面</div>
   <div id="overlay">
     <div class="box">
@@ -254,6 +325,16 @@
   <h2>直播状态</h2>
   <div id="state-banner" class="banner muted">状态：idle</div>
   <div class="kv" id="state-kv"></div>
+
+  <h2>重点区域</h2>
+  <div id="region-banner" class="banner muted">未启用（演示者可在控制页框选重点区域）</div>
+  <div class="kv" id="region-kv"></div>
+  <div class="row" style="margin-top:6px">
+    <button id="region-request" disabled>接收重点区域</button>
+    <button id="region-drop" disabled>切回全屏</button>
+  </div>
+  <div class="hint">区域轨道是演示者按原生像素裁剪后单独编码的流，不是把整屏画面放大。
+  切回全屏会释放区域轨道，避免旧流继续占带宽。</div>
 
   <h2>接收统计（每秒刷新）</h2>
   <div class="kv" id="stats-kv"></div>
@@ -310,6 +391,8 @@ let iceServers = [];
 let room = params.get('room') || 'DEMO';
 $('room').value = room;
 let presenterState = null;
+let fullMid = null;
+let regionMid = null;
 let lastFrameAt = 0;
 let lastDecodedFrames = 0;
 let lastVideoTime = 0;
@@ -324,6 +407,23 @@ let everLive = false;
 // Optional fixture time base, supplied by the experiment harness:
 // wall clock (ms) at which the fixture's calibration clock read zero.
 let fixtureT0Wall = Number(params.get('t0Wall') || 0);
+// `region=1` in the URL opts this viewer into the presenter's focus-region
+// track from the first negotiation. Without it the viewer stays whole-screen
+// only and the presenter does not pay the extra encode.
+let wantRegion = params.get('region') === '1';
+let regionStream = null;
+// The track currently bound to the region pane. Null after the viewer switches
+// back to full screen, even though the m-line's receiver still exists.
+let regionTrack2 = null;
+// The m-line's receiver track. Kept separately because dropping the picture
+// must not destroy the only way to resume: no new `track` event fires for an
+// already-negotiated m-line.
+let regionReceiverTrack = null;
+let regionRecvStats = null;
+let regionLastInbound = null;
+let regionStatsTimer = null;
+let regionIdleSince = 0;
+let regionStalled = false;
 // The harness measures regions on the captured desktop, in CSS pixels of the
 // virtual screen. `screen=WxH` lets us rescale them to whatever resolution the
 // encoder actually produced, instead of assuming a 1:1 pixel match.
@@ -392,6 +492,7 @@ let frozenEpisodes = 0;
 let frameGapsMs = [];
 
 const video = $('remote');
+const regionVideo = $('region-video');
 const overlay = $('overlay');
 const staleBadge = $('stale-badge');
 
@@ -459,8 +560,13 @@ function renderState() {
   video.classList.toggle('stale', mustClear);
   if (mustClear) {
     video.srcObject = null;
+    // A terminal/stale state also drops the region picture: a stale detail
+    // crop is exactly as misleading as a stale full frame.
+    if (regionTrack2) dropRegionTrack('state-clear');
   }
   staleBadge.classList.toggle('show', state === S.FROZEN);
+  $('region-badge').classList.toggle('show', wantRegion && !!regionTrack2 && state === S.LIVE);
+  $('region-toggle').textContent = wantRegion ? '只看整屏' : '显示重点区域';
 
   const pillMap = {
     [S.LIVE]: ['live', '● 直播中'],
@@ -544,6 +650,10 @@ function handleSignal(msg) {
       iceServers = msg.iceServers || [];
       presenterState = msg.presenterState || null;
       applyPresenterState(msg.presenterId ? msg.presenterState : null, msg.presenterId);
+      // Tell the presenter right away whether this viewer wants the region
+      // track, so it can be attached in the very first offer.
+      if (wantRegion) signal.send({ t: 'region-want', want: true });
+      updateRegionControls();
       return;
     case 'state':
       presenterState = msg;
@@ -680,6 +790,21 @@ async function onPeerSignal(from, payload) {
       },
     });
     pc.addEventListener('track', (ev) => {
+      // The presenter negotiates two video m-lines: the whole-screen stream and
+      // a reserved region m-line. A track arriving on the second m-line is the
+      // focus region, and may itself be silent (null sender) when the presenter
+      // has no selection - that is not the main picture.
+      const tr = ev.transceiver;
+      const mid = tr?.mid ?? null;
+      const isRegion =
+        mid != null &&
+        ((regionMid != null && mid === regionMid) ||
+          (regionMid == null && fullMid != null && mid !== fullMid));
+      if (!fullMid) fullMid = mid;
+      if (isRegion) {
+        attachRegionTrack(ev);
+        return;
+      }
       // The presenter may or may not attach a stream id; fall back to a local
       // stream wrapping the received track so playback always starts.
       let stream = ev.streams[0];
@@ -693,9 +818,16 @@ async function onPeerSignal(from, payload) {
       everLive = true;
       setState(S.LIVE);
       startSampling();
+      updateRegionControls();
     });
   }
   if (payload.description) {
+    // The presenter labels which m-line is the whole-screen stream and which is
+    // the reserved region m-line. Apply the labels before setting the remote
+    // description: `track` events fire during that call, so a viewer that only
+    // inferred "the first track is the main one" could attach them backwards.
+    if (payload.fullMid != null) fullMid = payload.fullMid;
+    if (payload.regionMid != null) regionMid = payload.regionMid;
     await pc.setRemoteDescription(payload.description);
     if (payload.description.type === 'offer') {
       const answer = await pc.createAnswer();
@@ -718,6 +850,7 @@ async function onPeerSignal(from, payload) {
 
 function teardownMedia() {
   stopSampling();
+  dropRegionTrack('teardown');
   if (pc) {
     pc.getSenders().forEach((s) => s.track?.stop?.());
     pc.close();
@@ -726,6 +859,202 @@ function teardownMedia() {
   video.srcObject = null;
   lastDecodedFrames = 0;
   lastVideoTime = 0;
+  fullMid = null;
+  regionMid = null;
+}
+
+// ---------------- focus-region receive ----------------
+function attachRegionTrack(ev) {
+  const track = ev.track;
+  if (!wantRegion) {
+    // The presenter only attaches the region track to viewers that asked for
+    // it, but if a stale frame of negotiation still delivers one, make sure we
+    // do not display or keep it. The track belongs to the m-line, so do not
+    // stop it - a re-request reuses it.
+    return;
+  }
+  if (regionTrack2 && regionTrack2 !== track) {
+    try { regionTrack2.stop(); } catch {}
+  }
+  regionTrack2 = track;
+  regionReceiverTrack = track;
+  regionStream = new MediaStream([track]);
+  regionVideo.srcObject = regionStream;
+  regionVideo.play().catch(() => {});
+  regionIdleSince = 0;
+  regionStalled = false;
+  const st = track.getSettings?.() ?? {};
+  regionRecvStats = {
+    width: st.width ?? null,
+    height: st.height ?? null,
+    frameRate: st.frameRate ?? null,
+    at: Date.now(),
+  };
+  startRegionStats();
+  updateRegionControls();
+}
+
+function dropRegionTrack(reason) {
+  // This is the "switch back to fullscreen" cleanup: detach the receive track,
+  // clear the element, and stop polling it. The presenter detaches the sender
+  // at the same time, which is what actually stops the bytes.
+  if (regionStatsTimer) {
+    clearInterval(regionStatsTimer);
+    regionStatsTimer = null;
+  }
+  if (reason === 'teardown') {
+    // The connection itself is going away, so there is nothing to resume.
+    try { regionReceiverTrack?.stop(); } catch {}
+    regionReceiverTrack = null;
+    regionTrack2 = null;
+  } else {
+    // Keep the receiver track: it is the m-line's only handle, and destroying
+    // it would make a later re-request unable to resume.
+    regionTrack2 = null;
+  }
+  regionStream = null;
+  regionRecvStats = null;
+  regionLastInbound = null;
+  regionIdleSince = 0;
+  regionStalled = false;
+  if (regionVideo) regionVideo.srcObject = null;
+  updateRegionControls(reason);
+}
+
+// Re-bind the region element to the already-negotiated receiver track. Needed
+// after dropping the picture: the m-line and its track still exist.
+function reattachRegionReceiver() {
+  if (!pc || !wantRegion || regionTrack2) return false;
+  const track = regionReceiver();
+  if (!track) return false;
+  attachRegionTrack({ track, transceiver: null });
+  return true;
+}
+
+function startRegionStats() {
+  if (regionStatsTimer) clearInterval(regionStatsTimer);
+  regionStatsTimer = setInterval(pollRegionInbound, 1000);
+}
+
+async function pollRegionInbound() {
+  if (!pc || !regionTrack2) return;
+  let stats;
+  try {
+    stats = await pc.getStats();
+  } catch {
+    return;
+  }
+  let inbound = null;
+  stats.forEach((s) => {
+    if (s.type === 'inbound-rtp' && s.kind === 'video') {
+      const isRegion =
+        regionMid != null ? s.mid === regionMid : s.mid != null && s.mid !== fullMid;
+      if (isRegion) inbound = s;
+    }
+  });
+  if (!inbound) return;
+  const now = performance.now();
+  const prev = regionLastInbound;
+  const dt = prev ? Math.max(0.2, (now - prev.at) / 1000) : 0;
+  const decodedDelta = prev ? Math.max(0, (inbound.framesDecoded ?? 0) - prev.decoded) : 0;
+  const bytesDelta = prev ? Math.max(0, (inbound.bytesReceived ?? 0) - prev.bytes) : 0;
+  // A detached region m-line keeps its receiver track but delivers nothing.
+  // Track how long that has lasted so the pane can say "stopped" rather than
+  // showing the last decoded picture as if it were current detail.
+  regionIdleSince = decodedDelta > 0 ? 0 : regionIdleSince || Date.now();
+  regionStalled = regionIdleSince > 0 && Date.now() - regionIdleSince > 2000;
+  regionRecvStats = {
+    width: inbound.frameWidth ?? null,
+    height: inbound.frameHeight ?? null,
+    decodeFps: dt ? Number((decodedDelta / dt).toFixed(1)) : 0,
+    kbps: dt ? Math.round((bytesDelta * 8) / dt / 1000) : 0,
+    framesDecoded: inbound.framesDecoded ?? 0,
+    framesDropped: inbound.framesDropped ?? 0,
+    packetsLost: inbound.packetsLost ?? 0,
+    jitterMs: inbound.jitter != null ? Number((inbound.jitter * 1000).toFixed(1)) : 0,
+    at: Date.now(),
+  };
+  regionLastInbound = {
+    at: now,
+    decoded: inbound.framesDecoded ?? 0,
+    bytes: inbound.bytesReceived ?? 0,
+  };
+  updateRegionControls();
+}
+
+function regionReceiver() {
+  if (regionReceiverTrack && regionReceiverTrack.readyState !== 'ended') {
+    return regionReceiverTrack;
+  }
+  if (!pc || regionMid == null) return null;
+  const tr = [...pc.getTransceivers()].find((t) => t.mid === regionMid);
+  const track = tr?.receiver?.track;
+  return track && track.readyState !== 'ended' ? track : null;
+}
+
+function updateRegionControls(note) {
+  const hasRegion = !!regionTrack2;
+  const r = regionRecvStats || {};
+  // A negotiated m-line yields a track object even before the presenter
+  // attaches frames to it. Treat "receiving" as "decoded at least one frame",
+  // otherwise the pane would show a black box and call it a region.
+  const receiving =
+    hasRegion &&
+    (r.framesDecoded ?? 0) > 0 &&
+    !regionStalled &&
+    !(regionTrack2?.muted && state === S.LIVE);
+  $('stage').classList.toggle('region-view', wantRegion);
+  $('stage').classList.toggle('no-region', wantRegion && !receiving);
+  $('region-badge').classList.toggle('show', wantRegion && receiving && state === S.LIVE);
+  $('region-request').disabled = !signal || wantRegion;
+  $('region-drop').disabled = !wantRegion;
+  $('region-toggle').textContent = wantRegion ? '只看整屏' : '显示重点区域';
+
+  const banner = $('region-banner');
+  if (!wantRegion) {
+    banner.className = 'banner muted';
+    banner.textContent = '未启用（演示者可在控制页框选重点区域）';
+    $('region-meta').textContent = '—';
+    $('region-kv').innerHTML = '';
+    return;
+  }
+  if (!receiving) {
+    banner.className = 'banner warn';
+    banner.textContent = note || '已请求重点区域，等待演示者接入区域轨道…';
+    $('region-meta').textContent = hasRegion
+      ? regionStalled
+        ? '区域轨道已停止出帧（演示者切回整屏或未框选）'
+        : regionTrack2?.muted
+        ? '区域轨道已静音（演示者未框选或已切回整屏）'
+        : '等待首帧'
+      : '未收到区域轨道';
+    $('region-kv').innerHTML = '';
+    return;
+  }
+  banner.className = 'banner ok';
+  banner.textContent =
+    `已接收区域轨道 · 解码 ${r.width ?? '—'}x${r.height ?? '—'} · ${r.decodeFps ?? 0} fps · ${r.kbps ?? 0} kbps`;
+  $('region-meta').textContent =
+    `${r.width ?? '—'}x${r.height ?? '—'} · ${r.decodeFps ?? 0} fps · ${r.kbps ?? 0} kbps`;
+  $('region-kv').innerHTML = [
+    ['区域解码尺寸', r.width && r.height ? `${r.width}x${r.height}` : '—'],
+    ['区域解码帧/秒', r.decodeFps ?? 0],
+    ['区域码率', `${r.kbps ?? 0} kbps`],
+    ['累计解码帧', r.framesDecoded ?? 0],
+    ['解码器丢帧', r.framesDropped ?? 0],
+    ['丢包（累计）', r.packetsLost ?? 0],
+    ['抖动', `${r.jitterMs ?? 0} ms`],
+  ]
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+}
+
+function requestRegion(on) {
+  wantRegion = !!on;
+  if (signal) signal.send({ t: 'region-want', want: wantRegion });
+  if (!wantRegion) dropRegionTrack('viewer-fullscreen');
+  else reattachRegionReceiver();
+  updateRegionControls();
 }
 
 // ---------------- freeze detection ----------------
@@ -1132,6 +1461,9 @@ $('mute').addEventListener('click', () => {
 $('save-crops').addEventListener('click', () => {
   window.__viewerSaveCrops?.();
 });
+$('region-request').addEventListener('click', () => requestRegion(true));
+$('region-drop').addEventListener('click', () => requestRegion(false));
+$('region-toggle').addEventListener('click', () => requestRegion(!wantRegion));
 $('reset-metrics').addEventListener('click', () => {
   latencySamples.length = 0;
   decodeSamples.length = 0;
@@ -1277,6 +1609,12 @@ window.__viewer = {
       stripRect,
       textRect,
       decodeTail: recentDecode.filter(Boolean).slice(-5),
+      region: {
+        want: wantRegion,
+        hasTrack: !!regionTrack2,
+        stats: regionRecvStats,
+        trackSettings: regionTrack2?.getSettings?.() ?? null,
+      },
     };
   },
   setStripRect: (r) => {
@@ -1344,9 +1682,31 @@ window.__viewer = {
     decodeSamples.length = 0;
     readSamples = [];
   },
+  requestRegion(on) {
+    requestRegion(on);
+    return { want: wantRegion, hasTrack: !!regionTrack2, receiver: !!regionReceiver() };
+  },
+  regionSummary: () => ({
+    want: wantRegion,
+    // Whether the region picture is currently bound, vs. whether the m-line's
+    // receiver track still exists (it does after a drop - that is the point).
+    hasTrack: !!regionTrack2,
+    receiverExists: !!regionReceiver(),
+    stats: regionRecvStats,
+    fullMid,
+  }),
+  async captureRegionFrame() {
+    if (!regionTrack2 || !regionVideo.videoWidth) return null;
+    const c = document.createElement('canvas');
+    c.width = regionVideo.videoWidth;
+    c.height = regionVideo.videoHeight;
+    c.getContext('2d').drawImage(regionVideo, 0, 0);
+    return c.toDataURL('image/png');
+  },
 };
 
 renderState();
+updateRegionControls();
 
 // Auto-join when the page was opened by the harness or with ?auto=1.
 if (params.get('auto') === '1') join();

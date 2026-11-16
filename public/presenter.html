@@ -71,6 +71,14 @@
     place-items: center;
     overflow: hidden;
   }
+  #preview-wrap {
+    position: relative;
+    display: flex;
+    max-width: 100%;
+    max-height: 100%;
+    cursor: crosshair;
+  }
+  #stage:not(.region-mode) #preview-wrap { cursor: default; }
   #preview {
     max-width: 100%;
     max-height: 100%;
@@ -78,7 +86,33 @@
     height: auto;
     display: block;
   }
-  #stage.empty #preview { display: none; }
+  #stage.empty #preview,
+  #stage.empty #preview-wrap { display: none; }
+  #sel-box {
+    position: absolute;
+    border: 2px dashed #f0c674;
+    background: rgba(240,198,116,.14);
+    pointer-events: none;
+    display: none;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.55) inset;
+  }
+  #sel-box.show { display: block; }
+  #sel-box .tag {
+    position: absolute;
+    left: 0;
+    top: -21px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 10px;
+    color: #1a1205;
+    background: #f0c674;
+    padding: 1px 6px;
+    border-radius: 3px 3px 0 0;
+    white-space: nowrap;
+  }
+  #region-kv { margin-top: 6px; }
+  #region-anomalies { display: grid; gap: 4px; margin-top: 6px; }
+  #region-anomalies .banner { margin: 0; }
+  .mode-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
   #stage-placeholder {
     position: absolute;
     inset: 0;
@@ -211,7 +245,10 @@
 </header>
 
 <section id="stage" class="empty">
-  <video id="preview" autoplay muted playsinline></video>
+  <div id="preview-wrap">
+    <video id="preview" autoplay muted playsinline></video>
+    <div id="sel-box"><span class="tag"></span></div>
+  </div>
   <div id="stage-placeholder">
     <div>
       <div style="font-size:15px;color:#c9d5e1;margin-bottom:6px">尚未开始共享</div>
@@ -236,6 +273,28 @@
     <button id="copy-viewer">复制观看链接</button>
   </div>
   <div id="join-msg" class="banner muted">未加入房间。</div>
+
+  <h2>屏幕直播模式</h2>
+  <div class="field">
+    <label>发送内容</label>
+    <select id="mode-select">
+      <option value="full">整屏共享（初版策略，独立可选）</option>
+      <option value="region">重点区域（整屏位置关系 + 区域高清）</option>
+    </select>
+  </div>
+  <div class="hint" id="mode-hint">
+    整屏共享只发送一条整屏轨道，清晰度由自适应档位决定。
+  </div>
+  <div id="region-controls" style="display:none">
+    <div class="row" style="margin-top:6px">
+      <button id="region-arm">框选重点区域</button>
+      <button id="region-clear" disabled>清除选区</button>
+    </div>
+    <div class="hint" id="region-hint">在左侧预览上拖拽框选（代码区或图表区）。释放后立即生效。</div>
+    <div class="kv" id="region-kv"></div>
+    <div id="region-anomalies"></div>
+    <div class="mode-note" id="region-mode-note"></div>
+  </div>
 
   <h2>直播状态</h2>
   <div id="state-banner" class="banner muted">状态：idle</div>
@@ -266,6 +325,11 @@ import { AdaptiveController, LADDER } from './shared/adaptive.js';
 import {
   SignalClient, createPeerConnection, selectedPair, trackSettingsSummary,
 } from './shared/rtc.js';
+import {
+  normalizeSelection, selectionFromPoints, planRegion, fullStreamAllocation,
+  detailComparison, regionBitrateCeiling, bitsPerPixel, regionAnomalies,
+} from './shared/region.js';
+import { RegionTrack } from './shared/region-track.js';
 
 // ?ice=relay forces every media packet through the TURN relay. The weak-network
 // experiments use this so the shaper on the relay is the only path.
@@ -296,8 +360,20 @@ const ui = {
   viewers: $('viewers'),
   log: $('log'),
   preview: $('preview'),
+  previewWrap: $('preview-wrap'),
+  selBox: $('sel-box'),
+  selBoxTag: $('sel-box').querySelector('.tag'),
   stage: $('stage'),
   overlay: $('state-overlay'),
+  modeSelect: $('mode-select'),
+  modeHint: $('mode-hint'),
+  regionControls: $('region-controls'),
+  regionArm: $('region-arm'),
+  regionClear: $('region-clear'),
+  regionHint: $('region-hint'),
+  regionKv: $('region-kv'),
+  regionAnomalies: $('region-anomalies'),
+  regionModeNote: $('region-mode-note'),
 };
 
 let signal = null;
@@ -443,6 +519,356 @@ const controller = new AdaptiveController({
 let captureMax = { width: 1920, height: 1080 };
 let outboundStream = null;
 
+// ---------------- focus-region state ----------------
+// `sendMode` is the baseline switch: the original whole-screen strategy stays
+// selected by default and can be chosen independently at any time. Region mode
+// adds a *second* pre-negotiated video m-line and never replaces the full one,
+// so the viewer keeps whole-screen positional context.
+let sendMode = 'full';
+/** @type {RegionTrack|null} */
+let regionTrack = null;
+/** @type {{x:number,y:number,w:number,h:number}|null} normalized selection */
+let regionNorm = null;
+let regionArmed = false;
+let regionDrag = null;
+let regionPublic = null;
+let regionLastSample = null;
+let regionLastBytes = null;
+let regionPaused = false;
+let regionPresenceStreak = 0;
+let regionPrevRich = false;
+let regionSelectedAt = 0;
+let regionSourceVersion = 0;
+let regionOutboundStream = null;
+// A viewer may ask for the region track before its peer entry exists (the
+// request is sent on welcome, the presenter only creates the entry when the
+// viewer asks for a stream). Remember the intent so the first offer honours it.
+const pendingRegionWant = new Map();
+
+function ensureRegionStream() {
+  if (!regionOutboundStream) regionOutboundStream = new MediaStream();
+  return regionOutboundStream;
+}
+
+function regionActive() {
+  return sendMode === 'region' && !!regionNorm && !regionPaused;
+}
+
+function regionViewers() {
+  return [...viewers.values()].filter((v) => v.regionSender && v.regionWanted);
+}
+
+function regionFps() {
+  return Math.max(5, controller.targetFps || 15);
+}
+
+function regionPolicy() {
+  const plan = regionTrack?.plan ?? (ui.preview.videoWidth
+    ? planRegion(regionNorm, ui.preview.videoWidth, ui.preview.videoHeight)
+    : null);
+  if (!plan || !plan.crop) return null;
+  const fps = regionFps();
+  return {
+    plan,
+    fps,
+    ceilingKbps: regionBitrateCeiling({ encW: plan.encW, encH: plan.encH, fps }),
+  };
+}
+
+function regionFullAllocation(plan) {
+  const vw = ui.preview.videoWidth;
+  const vh = ui.preview.videoHeight;
+  const s = lastStats?.out;
+  const fullEncW = s?.frameWidth || captureMax.width;
+  const fullEncH = s?.frameHeight || captureMax.height;
+  if (!plan?.crop || !vw || !vh) return null;
+  return fullStreamAllocation(plan.crop, vw, vh, fullEncW, fullEncH);
+}
+
+function regionSnapshot() {
+  const policy = regionPolicy();
+  const plan = policy?.plan ?? null;
+  const fullAlloc = plan ? regionFullAllocation(plan) : null;
+  const cmp = plan ? detailComparison({ plan, fullAlloc }) : null;
+  const r = regionLastSample;
+  const full = lastStats?.out
+    ? {
+        kbps: lastStats.outKbps ?? null,
+        encodedWidth: lastStats.out.frameWidth ?? null,
+        encodedHeight: lastStats.out.frameHeight ?? null,
+        queueDelayMs: lastSampleQueueMs(),
+      }
+    : null;
+  // Stats are sampled once a second, so a freshly attached region track has no
+  // encoded frames yet. Do not call that a stall until two sample periods have
+  // passed - otherwise every selection flashes a scary warning.
+  const settling = Date.now() - regionSelectedAt < 3500;
+  const wantViewers = settling ? 0 : regionViewers().length;
+  const anomalies = regionAnomalies({
+    mode: sendMode,
+    hasSelection: !!regionNorm,
+    plan,
+    region: r,
+    full,
+    estimateKbps: controller.snapshot().estimateKbps,
+    wantViewers,
+    anchorLost: regionPaused && !!regionNorm,
+  });
+  const publicState = {
+    mode: sendMode,
+    normalized: regionNorm,
+    active: regionActive(),
+    paused: regionPaused,
+    engine: regionTrack?.mode ?? null,
+    mstpSupported: regionTrack?.mstpSupported ?? (typeof MediaStreamTrackProcessor !== 'undefined'),
+    targetFps: policy?.fps ?? null,
+    plan: plan
+      ? {
+          crop: plan.crop,
+          coverage: Number(plan.coverage.toFixed(4)),
+          clipped: plan.clipped,
+          scale: Number(plan.scale.toFixed(4)),
+          encW: plan.encW,
+          encH: plan.encH,
+          nativePixels: plan.nativePixels,
+          encodedPixels: plan.encodedPixels,
+        }
+      : null,
+    fullAllocation: fullAlloc,
+    comparison: cmp
+      ? {
+          pixelGain: Number(cmp.pixelGain.toFixed(2)),
+          linearGain: Number(cmp.linearGain.toFixed(2)),
+          nativeFill: Number(cmp.nativeFill.toFixed(4)),
+        }
+      : null,
+    ceilingKbps: policy?.ceilingKbps ?? null,
+    demanded: !!regionTrack?.demand,
+    attachedViewers: [...viewers.values()].filter((v) => v.regionSender?.track).length,
+    measured: r,
+    anomalies,
+  };
+  regionPublic = publicState;
+  return publicState;
+}
+
+function lastSampleQueueMs() {
+  return window.__presenterLastSample?.queueDelayMs ?? 0;
+}
+
+function renderRegion() {
+  const snap = regionSnapshot();
+  ui.stage.classList.toggle('region-mode', sendMode === 'region');
+  ui.regionControls.style.display = sendMode === 'region' ? '' : 'none';
+  ui.modeHint.textContent =
+    sendMode === 'region'
+      ? '整屏轨道继续发送（保留位置关系），另加一条区域裁剪轨道；区域按原生像素编码，不放大低分辨率纹理。'
+      : '整屏共享只发送一条整屏轨道，清晰度由自适应档位决定。';
+  ui.regionArm.textContent = regionArmed ? '正在框选…（在预览上拖拽）' : '框选重点区域';
+  ui.regionArm.disabled = !track;
+  ui.regionClear.disabled = !regionNorm;
+
+  drawSelectionBox();
+
+  const rows = [];
+  if (snap.plan) {
+    rows.push(['选区（源像素）', `${snap.plan.crop.w}x${snap.plan.crop.h}`]);
+    rows.push(['区域编码尺寸', `${snap.plan.encW}x${snap.plan.encH}`]);
+    rows.push(['覆盖完整度', `${(snap.plan.coverage * 100).toFixed(0)}%${snap.plan.clipped ? '（已裁剪）' : ''}`]);
+    if (snap.comparison) {
+      rows.push(['同类区域整屏像素', `${snap.fullAllocation.w}x${snap.fullAllocation.h}`]);
+      rows.push(['细节倍率', `${snap.comparison.linearGain.toFixed(2)}× 线性 / ${snap.comparison.pixelGain.toFixed(2)}× 面积`]);
+      rows.push(['原生填充率', `${(snap.comparison.nativeFill * 100).toFixed(0)}%`]);
+    }
+    rows.push(['区域目标帧率', `${snap.targetFps} fps`]);
+    rows.push(['区域码率上限', `${snap.ceilingKbps} kbps`]);
+  } else if (regionNorm) {
+    rows.push(['选区', '已完全移出共享源']);
+  } else {
+    rows.push(['选区', '未框选']);
+  }
+  if (snap.measured) {
+    const m = snap.measured;
+    rows.push(['区域实测编码', `${m.encodedWidth ?? '—'}x${m.encodedHeight ?? '—'}`]);
+    rows.push(['区域实测码率', `${m.kbps ?? 0} kbps`]);
+    if (m.bpp != null) rows.push(['区域实测 bpp', m.bpp.toFixed(3)]);
+    rows.push(['区域编码队列', `${Math.round(m.queueDelayMs ?? 0)} ms`]);
+    rows.push(['区域累计帧', `${m.framesEncoded ?? 0}`]);
+    rows.push(['请求区域的观看者', `${snap.measured.viewersWanting ?? 0}`]);
+  }
+  if (regionTrack) {
+    rows.push(['裁剪引擎', `${regionTrack.mode}${regionTrack.mstpSupported ? '' : '（无 TrackProcessor，回退）'}`]);
+    rows.push(['画布推送/丢弃', `${regionTrack.framesDrawn} / ${regionTrack.framesSkipped}`]);
+    if (regionTrack.lastError) rows.push(['最近错误', regionTrack.lastError]);
+  }
+  ui.regionKv.innerHTML = rows
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+  ui.regionModeNote.textContent =
+    regionTrack?.mode === 'mstp'
+      ? '实际实现：MediaStreamTrackProcessor 读取共享轨道 → VideoFrame 原生像素裁剪 → canvas（captureStream(0)）→ 独立 RTP 轨道。'
+      : regionTrack?.mode === 'draw'
+      ? '实际实现：预览帧原生像素裁剪 → canvas（captureStream(0)）→ 独立 RTP 轨道（浏览器无 TrackProcessor）。'
+      : '尚未建立区域轨道。';
+
+  const list = snap.anomalies || [];
+  ui.regionAnomalies.innerHTML = list
+    .map((a) => `<div class="banner ${a.level}">${esc(a.text)}</div>`)
+    .join('');
+  ui.regionHint.textContent = !track
+    ? '请先开始共享，再框选重点区域。'
+    : !regionNorm
+    ? '在左侧预览上拖拽框选（代码区或图表区）。释放后立即生效。'
+    : regionPaused
+    ? '区域内容已丢失，区域轨道已暂停。调整窗口后点“框选重点区域”重新校准。'
+    : '区域坐标保存为相对共享源的比例，源尺寸或显示缩放变化后会重新投影；裁剪始终限制在源范围内。';
+}
+
+function drawSelectionBox() {
+  const v = ui.preview;
+  if (!v.videoWidth || !regionNorm) {
+    ui.selBox.classList.remove('show');
+    return;
+  }
+  const scaleX = v.clientWidth / v.videoWidth;
+  const scaleY = v.clientHeight / v.videoHeight;
+  const left = v.offsetLeft + regionNorm.x * v.videoWidth * scaleX;
+  const top = v.offsetTop + regionNorm.y * v.videoHeight * scaleY;
+  const w = regionNorm.w * v.videoWidth * scaleX;
+  const h = regionNorm.h * v.videoHeight * scaleY;
+  ui.selBox.style.left = `${left}px`;
+  ui.selBox.style.top = `${top}px`;
+  ui.selBox.style.width = `${w}px`;
+  ui.selBox.style.height = `${h}px`;
+  ui.selBox.classList.add('show');
+  const plan = regionTrack?.plan ?? planRegion(regionNorm, v.videoWidth, v.videoHeight);
+  ui.selBoxTag.textContent = plan?.crop
+    ? `${plan.crop.w}x${plan.crop.h} → ${plan.encW}x${plan.encH}`
+    : '选区已在源外';
+}
+
+function applyRegionSelection(norm) {
+  regionNorm = norm;
+  regionSelectedAt = Date.now();
+  regionPaused = false;
+  regionPresenceStreak = 0;
+  regionPrevRich = false;
+  if (!norm) {
+    stopRegionTrack('selection-cleared');
+    renderRegion();
+    sendState();
+    return;
+  }
+  // A selection change reuses the existing region track when the source has not
+  // changed. The canvas is resized and re-filled in place, so rapid re-selection
+  // cannot leave an old stream running and consuming bandwidth.
+  if (regionTrack && regionTrack.running) {
+    regionTrack.setNormalized(norm);
+    regionTrack.setFps(regionFps());
+    if (regionTrack.plan?.crop) startRegionOnViewers();
+  } else if (regionActive()) {
+    startRegionTrack();
+  }
+  renderRegion();
+  sendState();
+}
+
+function startRegionTrack() {
+  if (!track || !regionNorm) return;
+  const vw = ui.preview.videoWidth || captureMax.width;
+  const vh = ui.preview.videoHeight || captureMax.height;
+  if (regionTrack) regionTrack.stop();
+  regionTrack = new RegionTrack(track, {
+    previewVideo: ui.preview,
+    fps: regionFps(),
+    normalized: regionNorm,
+    onUpdate: () => renderRegion(),
+    onError: (err) => log('down', `区域裁剪错误：${err.name}: ${err.message}`),
+  });
+  const out = regionTrack.start(vw, vh);
+  regionSourceVersion++;
+  log('up',
+    `区域轨道启动：${regionTrack.mode} 裁剪 ${regionTrack.plan?.crop.w ?? 0}x${regionTrack.plan?.crop.h ?? 0} → ` +
+    `${regionTrack.plan?.encW ?? 0}x${regionTrack.plan?.encH ?? 0}`);
+  startRegionOnViewers();
+  return out;
+}
+
+function stopRegionTrack(reason) {
+  if (regionTrack) {
+    regionTrack.stop();
+    regionTrack = null;
+    log('down', `区域轨道停止（${reason}）`);
+  }
+  for (const v of viewers.values()) {
+    if (v.regionSender) {
+      try { v.regionSender.replaceTrack(null); } catch {}
+    }
+  }
+  regionLastSample = null;
+  regionLastBytes = null;
+  regionPrevRich = false;
+  regionPresenceStreak = 0;
+}
+
+function startRegionOnViewers() {
+  if (!regionTrack?.track) return;
+  const want = regionActive() && regionViewers().length > 0;
+  regionTrack.setDemand(want);
+  for (const v of viewers.values()) {
+    if (!v.regionSender || !v.regionWanted) continue;
+    attachRegionTrack(v);
+  }
+  if (want) applyRegionEncoding();
+}
+
+function attachRegionTrack(v) {
+  if (!v.regionSender) return;
+  // The crop pipeline only runs while at least one viewer actually wants the
+  // region track, so a viewer switching back to full screen immediately stops
+  // the encoder cost as well as the bandwidth.
+  if (regionTrack) {
+    regionTrack.setDemand(regionActive() && regionViewers().length > 0);
+  }
+  const want = regionActive() && v.regionWanted;
+  const next = want ? regionTrack?.track ?? null : null;
+  const cur = v.regionSender.track ?? null;
+  if (cur === next) return;
+  v.regionSender.replaceTrack(next).catch((err) => {
+    log('down', `区域 replaceTrack 失败：${err.message}`);
+  });
+}
+
+async function applyRegionEncoding() {
+  if (!regionTrack?.plan) return;
+  const fps = regionFps();
+  const ceiling = regionBitrateCeiling({
+    encW: regionTrack.plan.encW,
+    encH: regionTrack.plan.encH,
+    fps,
+  });
+  for (const v of viewers.values()) {
+    if (!v.regionSender || !v.regionSender.__negotiated) continue;
+    try {
+      const p = v.regionSender.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = ceiling * 1000;
+      p.encodings[0].maxFramerate = fps;
+      p.encodings[0].scaleResolutionDownBy = 1;
+      p.degradationPreference = 'maintain-resolution';
+      await v.regionSender.setParameters(p);
+    } catch (err) {
+      log('down', `区域 setParameters 失败：${err.name}: ${err.message}`);
+    }
+  }
+  if (regionTrack.track) {
+    try {
+      await regionTrack.track.applyConstraints({ frameRate: { ideal: fps, max: fps } });
+    } catch { /* encoder framerate is enforced above */ }
+  }
+  regionTrack.setFps(fps);
+}
+
 async function applyEncodingPatch(patch) {
   const enc = {};
   if (patch.width && patch.height) {
@@ -489,8 +915,16 @@ async function applyEncodingPatch(patch) {
     }
   }
 
+  // The region track has its own clarity-first ceiling; re-derive it whenever
+  // the content motion (and therefore the target fps) changes.
+  if (regionTrack?.running) {
+    regionTrack.setFps(patch.frameRate ?? controller.targetFps);
+    await applyRegionEncoding();
+  }
+
   renderAdaptive();
   renderLadder();
+  renderRegion();
 }
 
 // ---------------- motion estimation ----------------
@@ -608,16 +1042,29 @@ async function pollStats() {
   let out = null;
   let pair = null;
   let remoteInbound = null;
+  // Attribute by m-line. `getStats()` lists every outbound video stream; taking
+  // "the last one" would silently report the region track's numbers as the
+  // whole-screen stream's once region mode is on.
+  const fullMid = first.sender.__mid;
   stats.forEach((s) => {
-    if (s.type === 'outbound-rtp' && s.kind === 'video') out = s;
+    if (s.type === 'outbound-rtp' && s.kind === 'video') {
+      if (fullMid != null ? s.mid === fullMid : !out) out = s;
+    }
     if (
       s.type === 'candidate-pair' &&
       s.state === 'succeeded' &&
       (s.selected || s.nominated)
     )
       pair = s;
-    if (s.type === 'remote-inbound-rtp' && s.kind === 'video') remoteInbound = s;
+    if (s.type === 'remote-inbound-rtp' && s.kind === 'video') {
+      if (out ? s.localId === out.id : !remoteInbound) remoteInbound = s;
+    }
   });
+  if (!remoteInbound) {
+    stats.forEach((s) => {
+      if (s.type === 'remote-inbound-rtp' && s.kind === 'video') remoteInbound = s;
+    });
+  }
 
   const now = performance.now();
   const prev = lastStats;
@@ -682,6 +1129,78 @@ async function pollStats() {
   const encodedW = out?.frameWidth ?? null;
   const encodedH = out?.frameHeight ?? null;
 
+  // Region track stats are read from the same getStats() snapshot, keyed by
+  // m-line. Reporting them separately is what makes the bandwidth cost of the
+  // focus-region mode a measurement rather than a claim.
+  const regionSenderEntry = [...viewers.values()].find((v) => v.regionSender?.track);
+  let regionOut = null;
+  if (regionSenderEntry) {
+    stats.forEach((s) => {
+      if (s.type === 'outbound-rtp' && s.kind === 'video' && s.mid === regionSenderEntry.regionSender.__mid) {
+        regionOut = s;
+      }
+    });
+  }
+  const prevRegion = regionLastBytes;
+  const regionBytes = regionOut?.bytesSent ?? null;
+  const regionKbps = prevRegion && regionBytes != null
+    ? Math.max(0, ((regionBytes - prevRegion.bytes) * 8) / dt / 1000)
+    : null;
+  const regionFramesDelta = prevRegion && regionOut
+    ? Math.max(0, (regionOut.framesEncoded ?? 0) - prevRegion.frames)
+    : 0;
+  const regionEncFps = dt ? regionFramesDelta / dt : 0;
+  const regionQueueMs =
+    regionOut && prevRegion
+      ? ((regionOut.totalPacketSendDelay ?? 0) - prevRegion.queueCost) /
+        Math.max(1, (regionOut.packetsSent ?? 0) - prevRegion.packets) * 1000
+      : 0;
+  if (regionOut) {
+    regionLastBytes = {
+      bytes: regionBytes,
+      frames: regionOut.framesEncoded ?? 0,
+      packets: regionOut.packetsSent ?? 0,
+      queueCost: regionOut.totalPacketSendDelay ?? 0,
+    };
+    regionLastSample = {
+      mid: regionOut.mid ?? null,
+      encodedWidth: regionOut.frameWidth ?? null,
+      encodedHeight: regionOut.frameHeight ?? null,
+      framesEncoded: regionOut.framesEncoded ?? 0,
+      encodeFps: Number(regionEncFps.toFixed(1)),
+      kbps: regionKbps == null ? null : Math.round(regionKbps),
+      targetKbps: Math.round(regionOut.targetBitrate ? regionOut.targetBitrate / 1000 : 0),
+      bpp: bitsPerPixel({
+        kbps: regionKbps,
+        fps: regionEncFps,
+        width: regionOut.frameWidth,
+        height: regionOut.frameHeight,
+      }),
+      queueDelayMs: Number(Math.max(0, regionQueueMs).toFixed(1)),
+      qualityLimitation: regionOut.qualityLimitationReason ?? null,
+      packetsSent: regionOut.packetsSent ?? 0,
+      viewersWanting: regionViewers().length,
+      at: Date.now(),
+    };
+  } else {
+    regionLastSample = null;
+    regionLastBytes = null;
+  }
+
+  // Publish this tick's stats before building the snapshot: regionSnapshot()
+  // derives the full-stream allocation for the selected area from
+  // lastStats.out.frameWidth/Height. Assigning afterwards would make that
+  // figure lag one poll behind, and right after a rung change it would still
+  // describe the previous (larger) frame and understate the detail gain.
+  lastStats = {
+    at: now,
+    out: out ? { ...out } : null,
+    outKbps: Math.round(kbps),
+    bytesSent: bytes,
+    remoteInbound: remoteInbound ? { ...remoteInbound } : null,
+  };
+  const regionSnap = regionSnapshot();
+
   const sample = {
     sentFrames: out?.framesSent ?? 0,
     encodedFrames: out?.framesEncoded ?? 0,
@@ -703,19 +1222,79 @@ async function pollStats() {
     captureHeight: track?.getSettings().height ?? null,
     captureFrameRate: track?.getSettings().frameRate ?? null,
     ladder: controller.snapshot(),
+    region: regionLastSample
+      ? {
+          mode: sendMode,
+          enabled: regionActive(),
+          engine: regionTrack?.mode ?? null,
+          plan: regionSnap.plan,
+          comparison: regionSnap.comparison,
+          fullAllocation: regionSnap.fullAllocation,
+          anomalies: regionSnap.anomalies,
+          encodedWidth: regionLastSample.encodedWidth,
+          encodedHeight: regionLastSample.encodedHeight,
+          kbps: regionLastSample.kbps,
+          targetKbps: regionLastSample.targetKbps,
+          bpp: regionLastSample.bpp,
+          encodeFps: regionLastSample.encodeFps,
+          queueDelayMs: regionLastSample.queueDelayMs,
+          framesEncoded: regionLastSample.framesEncoded,
+          qualityLimitation: regionLastSample.qualityLimitation,
+          viewersWanting: regionLastSample.viewersWanting,
+        }
+      : {
+          mode: sendMode,
+          enabled: false,
+          engine: regionTrack?.mode ?? null,
+          plan: regionSnap.plan,
+          comparison: regionSnap.comparison,
+          fullAllocation: regionSnap.fullAllocation,
+          anomalies: regionSnap.anomalies,
+        },
     at: Date.now(),
   };
 
-  lastStats = {
-    at: now,
-    out: out ? { ...out } : null,
-    bytesSent: bytes,
-    remoteInbound: remoteInbound ? { ...remoteInbound } : null,
-  };
-
   renderStats(sample);
+  regionWatchdog();
+  renderRegion();
   if (signal) signal.send({ t: 'stats', sample });
   window.__presenterLastSample = sample;
+}
+
+// Notice when the framed content no longer sits under the selection: a window
+// moved on the shared desktop, a page scrolled away, or the source switched.
+// Sending a crop of what is now empty space would be "capturing content that
+// moved out of the region", so the region track is detached and the UI asks for
+// a recalibration instead.
+function regionWatchdog() {
+  if (!regionTrack || !regionTrack.running || !regionNorm) {
+    regionPresenceStreak = 0;
+    return;
+  }
+  const score = regionTrack.detailScore();
+  if (score == null) return;
+  const rich = score >= 0.008;
+  if (rich) {
+    regionPresenceStreak = 0;
+    if (regionPaused) {
+      regionPaused = false;
+      regionPrevRich = true;
+      if (regionActive()) startRegionOnViewers();
+      log('up', '区域内容恢复，区域轨道重新接入');
+    }
+    regionPrevRich = true;
+    return;
+  }
+  // Two consecutive empty readings, and only if the selection had content to
+  // begin with - a genuinely blank page is not an anomaly worth pausing on.
+  if (regionPrevRich) regionPresenceStreak++;
+  if (regionPresenceStreak >= 2 && !regionPaused) {
+    regionPaused = true;
+    for (const v of viewers.values()) {
+      if (v.regionSender) { try { v.regionSender.replaceTrack(null); } catch {} }
+    }
+    log('down', `区域内容丢失（细节占比 ${(score * 100).toFixed(1)}%），已暂停区域轨道`);
+  }
 }
 
 // ---------------- rendering ----------------
@@ -849,6 +1428,17 @@ async function handleSignal(msg) {
       log('up', `观看者请求：${msg.viewerName}`);
       await offerToViewer(msg.viewerId, msg.viewerName);
       return;
+    case 'region-want': {
+      const v = viewers.get(msg.viewerId);
+      if (!v) {
+        pendingRegionWant.set(msg.viewerId, !!msg.want);
+        return;
+      }
+      v.regionWanted = !!msg.want;
+      attachRegionTrack(v);
+      renderRegion();
+      return;
+    }
     case 'signal':
       await onSignalFromPeer(msg.from, msg.payload);
       return;
@@ -886,15 +1476,33 @@ function viewerEntry(id) {
       }
     },
   });
-  // Bind an explicit local MediaStream so the receiving side gets a stream id
-  // in SDP and can attach it to a <video> element without guessing.
+  // Two pre-negotiated video m-lines: [0] is always the whole-screen track,
+  // [1] is reserved for the focus region. Negotiating the region m-line up
+  // front means attaching or dropping it later is a replaceTrack() call, not a
+  // renegotiation - and replaceTrack(null) stops all media on that m-line, so
+  // switching back to full screen cannot leave an old region stream running.
   if (!outboundStream) outboundStream = new MediaStream();
   const transceiver = pc.addTransceiver('video', {
     direction: 'sendonly',
     streams: [outboundStream],
   });
+  const regionTransceiver = pc.addTransceiver('video', {
+    direction: 'sendonly',
+    streams: [ensureRegionStream()],
+  });
   const sender = transceiver.sender;
-  v = { pc, sender, name: '' };
+  const regionSender = regionTransceiver.sender;
+  v = {
+    pc,
+    sender,
+    regionSender,
+    name: '',
+    // Whether this viewer asked for the region track. A viewer with a narrow
+    // pipe can stay on whole-screen only; the presenter then does not pay the
+    // extra encode for it.
+    regionWanted: pendingRegionWant.get(id) ?? false,
+  };
+  pendingRegionWant.delete(id);
   viewers.set(id, v);
   renderViewers();
   return v;
@@ -912,7 +1520,11 @@ async function offerToViewer(viewerId, viewerName) {
     signal.send({
       t: 'signal',
       to: viewerId,
-      payload: { description: v.pc.localDescription },
+      payload: {
+        description: v.pc.localDescription,
+        fullMid: v.sender.__mid ?? null,
+        regionMid: v.regionSender.__mid ?? null,
+      },
     });
     return;
   }
@@ -931,14 +1543,33 @@ async function offerToViewer(viewerId, viewerName) {
       log('down', `replaceTrack 失败：${err.message}`);
     }
   }
+  // The region m-line is negotiated even with nothing attached. Attaching or
+  // detaching the region is then just replaceTrack() and needs no SDP round
+  // trip, so quickly re-selecting a region can never race a renegotiation.
+  v.regionSender.__negotiated = true;
+  if (regionActive() && regionTrack?.track) {
+    attachRegionTrack(v);
+  } else {
+    try { await v.regionSender.replaceTrack(null); } catch {}
+  }
   const offer = await v.pc.createOffer();
   await v.pc.setLocalDescription(offer);
+  // The m-line ids only exist after setLocalDescription. Remember which one is
+  // the region sender so per-track stats can be attributed unambiguously.
+  for (const tr of v.pc.getTransceivers()) {
+    if (tr.sender === v.sender) v.sender.__mid = tr.mid;
+    if (tr.sender === v.regionSender) v.regionSender.__mid = tr.mid;
+  }
   v.sender.__negotiated = true;
   v.offering = false;
   signal.send({
     t: 'signal',
     to: viewerId,
-    payload: { description: v.pc.localDescription },
+    payload: {
+      description: v.pc.localDescription,
+      fullMid: v.sender.__mid ?? null,
+      regionMid: v.regionSender.__mid ?? null,
+    },
   });
 }
 
@@ -1033,6 +1664,14 @@ async function startShare() {
   startStatsLoop();
   renderState();
 
+  // A new source invalidates any region crop computed from the previous one.
+  // Keep the normalized selection (it means "the same part of the source") and
+  // re-derive the pixel crop from the new dimensions.
+  if (regionNorm && sendMode === 'region') {
+    startRegionTrack();
+  }
+  renderRegion();
+
   setState(viewers.size ? S.LIVE : S.READY, 'capture started');
 
   for (const v of viewers.values()) {
@@ -1041,6 +1680,7 @@ async function startShare() {
     } catch (err) {
       log('down', `replaceTrack 失败：${err.message}`);
     }
+    if (regionActive()) attachRegionTrack(v);
   }
   await applyEncodingPatch({
     width: LADDER[controller.ladderIndex].width,
@@ -1071,6 +1711,7 @@ function onTrackGone(reason) {
   lastEndReason = reason;
   stopMotionLoop();
   stopStatsLoop();
+  stopRegionTrack(reason);
   if (track) {
     track.onended = null;
     try { track.stop(); } catch {}
@@ -1083,12 +1724,15 @@ function onTrackGone(reason) {
   }
   stream = null;
   ui.preview.srcObject = null;
+  ui.selBox.classList.remove('show');
   for (const v of viewers.values()) {
     try { v.sender.replaceTrack(null); } catch {}
+    try { v.regionSender?.replaceTrack(null); } catch {}
     v.pc.close();
   }
   viewers.clear();
   renderViewers();
+  renderRegion();
   setState(S.ENDED, reason);
 }
 
@@ -1098,13 +1742,17 @@ function stopShare() {
   onTrackGone('user-stopped');
 }
 
-async function switchSource() {
+async function switchSource(constraintOverride = null) {
   if (!track) return;
   const before = trackSettingsSummary(track);
   setState(S.SWITCHING, 'requesting new source');
   let next;
   try {
-    next = await navigator.mediaDevices.getDisplayMedia(captureConstraints());
+    const constraints = captureConstraints();
+    if (constraintOverride) {
+      Object.assign(constraints.video, constraintOverride);
+    }
+    next = await navigator.mediaDevices.getDisplayMedia(constraints);
   } catch (err) {
     log('down', `切换取消：${err.name}: ${err.message}`);
     setState(viewers.size ? S.LIVE : S.READY, 'switch cancelled');
@@ -1139,6 +1787,12 @@ async function switchSource() {
   try { oldTrack?.stop(); } catch {}
   old?.getTracks().forEach((x) => { try { x.stop(); } catch {} });
 
+  // The crop pipeline reads the capture track directly. Left alone, it would
+  // keep reading a track that is now stopped, so the region would silently
+  // freeze even though the whole-screen m-line recovered. Rebuild it against
+  // the new source; the normalized selection still means the same part of it.
+  if (sendMode === 'region' && regionNorm) startRegionTrack();
+
   startMotionLoop();
   startStatsLoop();
   controller.noteCaptureSize(captureMax.width, captureMax.height);
@@ -1157,7 +1811,113 @@ async function switchSource() {
 ui.join.addEventListener('click', join);
 ui.share.addEventListener('click', startShare);
 ui.stop.addEventListener('click', stopShare);
-ui.switch.addEventListener('click', switchSource);
+ui.switch.addEventListener('click', () => switchSource());
+ui.modeSelect.addEventListener('change', () => setSendMode(ui.modeSelect.value));
+ui.regionArm.addEventListener('click', () => {
+  regionArmed = !regionArmed;
+  ui.previewWrap.style.cursor = regionArmed ? 'crosshair' : '';
+  renderRegion();
+});
+ui.regionClear.addEventListener('click', () => {
+  regionArmed = false;
+  applyRegionSelection(null);
+});
+
+function setSendMode(next) {
+  if (next === sendMode) return;
+  sendMode = next === 'region' ? 'region' : 'full';
+  ui.modeSelect.value = sendMode;
+  if (sendMode === 'full') {
+    // Switching back to whole-screen must complete the track cleanup: stop the
+    // crop pipeline and detach the track from every viewer's region m-line.
+    for (const v of viewers.values()) {
+      if (v.regionSender) { try { v.regionSender.replaceTrack(null); } catch {} }
+    }
+    stopRegionTrack('mode-full');
+  } else if (regionNorm) {
+    startRegionTrack();
+  }
+  log('up', `屏幕直播模式：${sendMode === 'region' ? '重点区域（整屏 + 区域）' : '整屏'}`);
+  renderRegion();
+  sendState();
+}
+
+// Drag-select on the preview. Coordinates are converted from CSS pixels to
+// source pixels immediately, then stored normalized, so a later resize or
+// display-scale change re-projects the same content.
+function previewPoint(ev) {
+  const v = ui.preview;
+  const r = v.getBoundingClientRect();
+  if (!r.width || !r.height || !v.videoWidth) return null;
+  return {
+    x: ((ev.clientX - r.left) / r.width) * v.videoWidth,
+    y: ((ev.clientY - r.top) / r.height) * v.videoHeight,
+  };
+}
+
+function drawDragBox(a, b) {
+  const v = ui.preview;
+  if (!v.videoWidth) return;
+  const r = v.getBoundingClientRect();
+  const toCss = (p) => ({
+    x: (p.x / v.videoWidth) * r.width + v.offsetLeft,
+    y: (p.y / v.videoHeight) * r.height + v.offsetTop,
+  });
+  const p0 = toCss(a);
+  const p1 = toCss(b);
+  ui.selBox.style.left = `${Math.min(p0.x, p1.x)}px`;
+  ui.selBox.style.top = `${Math.min(p0.y, p1.y)}px`;
+  ui.selBox.style.width = `${Math.abs(p1.x - p0.x)}px`;
+  ui.selBox.style.height = `${Math.abs(p1.y - p0.y)}px`;
+  ui.selBoxTag.textContent = '拖拽框选中…';
+  ui.selBox.classList.add('show');
+}
+
+ui.previewWrap.addEventListener('pointerdown', (ev) => {
+  if (!regionArmed || !track) return;
+  const p = previewPoint(ev);
+  if (!p) return;
+  ev.preventDefault();
+  ui.previewWrap.setPointerCapture(ev.pointerId);
+  regionDrag = { a: p, b: p };
+  drawDragBox(p, p);
+});
+
+ui.previewWrap.addEventListener('pointermove', (ev) => {
+  if (!regionDrag) return;
+  const p = previewPoint(ev);
+  if (!p) return;
+  regionDrag.b = p;
+  drawDragBox(regionDrag.a, regionDrag.b);
+});
+
+ui.previewWrap.addEventListener('pointerup', (ev) => {
+  if (!regionDrag) return;
+  const p = previewPoint(ev) || regionDrag.b;
+  const sel = selectionFromPoints(regionDrag.a, p, ui.preview.videoWidth, ui.preview.videoHeight);
+  regionDrag = null;
+  regionArmed = false;
+  ui.previewWrap.style.cursor = '';
+  if (sel && sel.w * ui.preview.videoWidth >= 24 && sel.h * ui.preview.videoHeight >= 24) {
+    applyRegionSelection(sel);
+  } else {
+    log('down', '框选区域过小，已忽略');
+    renderRegion();
+    drawSelectionBox();
+  }
+});
+
+window.addEventListener('resize', () => {
+  drawSelectionBox();
+  // A window resize can change the capture size without the track reporting a
+  // new settings object; re-project the stored normalized selection.
+  if (regionTrack && ui.preview.videoWidth) {
+    regionTrack.frameW = ui.preview.videoWidth;
+    regionTrack.frameH = ui.preview.videoHeight;
+    regionTrack.recompute();
+    if (regionTrack.plan?.crop) startRegionOnViewers();
+  }
+});
 ui.copyViewer.addEventListener('click', async () => {
   const url = `${location.origin}/viewer.html?room=${encodeURIComponent(room)}`;
   try {
@@ -1206,6 +1966,31 @@ window.__presenter = {
   startShare,
   stopShare,
   switchSource,
+  // Harness hook: re-request the screen capture at a different resolution, so
+  // the regression can exercise a real source-size change instead of assuming
+  // one.
+  switchSourceTo: (video) => switchSource(video || null),
+  // Harness hook: change the *live* capture's dimensions in place. This is the
+  // same transition a display-scale change or a browser-side capture resize
+  // produces, and it is what the region selection must survive.
+  async resizeCapture(width, height) {
+    if (!track) return null;
+    await track.applyConstraints({ width: { ideal: width }, height: { ideal: height } });
+    await new Promise((r) => setTimeout(r, 500));
+    const settings = track.getSettings();
+    captureMax = { width: settings.width || width, height: settings.height || height };
+    controller.noteCaptureSize(captureMax.width, captureMax.height);
+    // Mirror what the window-resize path does: re-project the stored normalized
+    // selection onto the new frame.
+    if (regionTrack && ui.preview.videoWidth) {
+      regionTrack.frameW = ui.preview.videoWidth;
+      regionTrack.frameH = ui.preview.videoHeight;
+      regionTrack.recompute();
+      if (regionTrack.plan?.crop) startRegionOnViewers();
+    }
+    renderRegion();
+    return { settings, capture: captureMax, region: regionSnapshot() };
+  },
   state: () => presenterState,
   snapshot: () => ({
     state: presenterState,
@@ -1307,6 +2092,7 @@ window.__presenter = {
             captureFrameRate: s.captureFrameRate,
           }
         : null,
+      region: s?.region ?? regionSnapshot(),
       pc: v ? { connectionState: v.pc.connectionState, ice: v.pc.iceConnectionState } : null,
     };
   },
@@ -1341,11 +2127,84 @@ window.__presenter = {
     c.getContext('2d').drawImage(ui.preview, sx, sy, sw, sh, 0, 0, sw, sh);
     return c.toDataURL('image/png');
   },
+  // ---- focus-region hooks (used by the regression scenario) ----
+  setSendMode(mode) {
+    ui.modeSelect.value = mode;
+    setSendMode(mode);
+    return sendMode;
+  },
+  setRegionNorm(norm) {
+    applyRegionSelection(norm ? normalizeSelection(norm) : null);
+    return regionSnapshot();
+  },
+  // Select by source-pixel rectangle, which is how the harness expresses a
+  // region measured on the virtual desktop.
+  setRegionPixels(rect) {
+    if (!ui.preview.videoWidth) return null;
+    const norm = normalizeSelection({
+      x: rect.x / ui.preview.videoWidth,
+      y: rect.y / ui.preview.videoHeight,
+      w: rect.w / ui.preview.videoWidth,
+      h: rect.h / ui.preview.videoHeight,
+    });
+    applyRegionSelection(norm);
+    return regionSnapshot();
+  },
+  region: () => regionSnapshot(),
+  regionTrack: () => (regionTrack ? regionTrack.snapshot() : null),
+  // Live cumulative byte counters for both m-lines. The harness uses these to
+  // prove that detaching a region track really stops bytes leaving the
+  // presenter, rather than trusting that the sender *looks* detached.
+  async outboundCounters() {
+    const v = [...viewers.values()][0];
+    if (!v) return null;
+    const stats = await v.pc.getStats();
+    const out = {};
+    stats.forEach((s) => {
+      if (s.type !== 'outbound-rtp' || s.kind !== 'video') return;
+      const which =
+        s.mid === v.sender.__mid ? 'full' : s.mid === v.regionSender.__mid ? 'region' : null;
+      if (!which) return;
+      out[which] = {
+        mid: s.mid,
+        bytesSent: s.bytesSent ?? 0,
+        framesEncoded: s.framesEncoded ?? 0,
+        width: s.frameWidth ?? null,
+        height: s.frameHeight ?? null,
+      };
+    });
+    return out;
+  },
+  regionDebug() {
+    const v = [...viewers.values()][0];
+    if (!v) return null;
+    return {
+      fullMid: v.sender.__mid ?? null,
+      regionMid: v.regionSender.__mid ?? null,
+      regionWanted: v.regionWanted,
+      regionSenderHasTrack: !!v.regionSender?.track,
+      regionSenderState: v.regionSender?.track?.readyState ?? null,
+      engine: regionTrack?.mode ?? null,
+    };
+  },
+  setRegionWanted(want) {
+    for (const v of viewers.values()) {
+      v.regionWanted = !!want;
+      attachRegionTrack(v);
+    }
+    renderRegion();
+    return regionViewers().length;
+  },
 };
 
 renderLadder();
 renderAdaptive();
 renderState();
+// The streaming control page always starts in the original whole-screen mode;
+// region mode is an explicit choice from the selector.
+sendMode = 'full';
+ui.modeSelect.value = sendMode;
+renderRegion();
 </script>
 </body>
 </html>
