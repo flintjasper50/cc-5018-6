@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>观看者 · 屏幕共享直播</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #141b23;
+    --line: #263340;
+    --ink: #e6edf3;
+    --muted: #93a1b1;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --bad: #f85149;
+    --accent: #2f81f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 13px/1.5 "DejaVu Sans", system-ui, sans-serif;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr 340px;
+    grid-template-areas: "top top" "stage side";
+  }
+  header {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { font-size: 14px; margin: 0 6px 0 0; font-weight: 700; }
+  .pill {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .pill.live { color: var(--ok); border-color: var(--ok); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  .spacer { flex: 1; }
+  button {
+    font: inherit;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: #1b242e;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: #1f6feb; border-color: #1f6feb; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #stage {
+    grid-area: stage;
+    position: relative;
+    background: #000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  #remote {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    background: #000;
+  }
+  /* The receiver deliberately clears the element when the stream is over so a
+     stale last frame cannot look like an active live stream. */
+  #remote.stale { visibility: hidden; }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 24px;
+    background: rgba(5, 8, 12, .92);
+    backdrop-filter: blur(2px);
+  }
+  #overlay.hidden { display: none; }
+  #overlay .box { max-width: 620px; }
+  #overlay .icon {
+    font-size: 34px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  #overlay h2 { margin: 0 0 8px; font-size: 18px; }
+  #overlay p { margin: 6px 0; color: var(--muted); }
+  #overlay .code {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+    color: #7d8b99;
+    margin-top: 10px;
+  }
+  #stale-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(120, 20, 16, .92);
+    border: 1px solid var(--bad);
+    color: #ffd7d3;
+    font-weight: 600;
+    display: none;
+    z-index: 5;
+  }
+  #stale-badge.show { display: block; }
+  aside {
+    grid-area: side;
+    border-left: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y: auto;
+    padding: 10px 12px 40px;
+  }
+  aside h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 14px 0 6px;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 10px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11.5px;
+  }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 600; }
+  .banner {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin: 6px 0;
+  }
+  .banner.ok { border-color: var(--ok); color: #9ae6a2; }
+  .banner.warn { border-color: var(--warn); color: #f0c674; }
+  .banner.bad { border-color: var(--bad); color: #ff9a94; }
+  .banner.muted { color: var(--muted); }
+  .field { display: grid; gap: 4px; margin: 6px 0; }
+  .field label { font-size: 11px; color: var(--muted); }
+  .field input {
+    font: inherit;
+    background: #0d1117;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 6px 8px;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 11px; }
+  .bar {
+    height: 8px;
+    background: #0d1117;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 4px 0 8px;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #2f81f7, #3fb950);
+    width: 0%;
+    transition: width .2s linear;
+  }
+  #hist {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    align-items: end;
+    height: 54px;
+    margin: 4px 0 2px;
+  }
+  #hist i {
+    display: block;
+    background: #2f81f7;
+    min-height: 1px;
+    border-radius: 1px 1px 0 0;
+  }
+  #hist-labels {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 8px;
+    color: var(--muted);
+    text-align: center;
+  }
+  #samples {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    max-height: 110px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 7px;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>观看者</h1>
+  <span class="pill" id="p-state">连接中…</span>
+  <span class="pill" id="p-res">分辨率 —</span>
+  <span class="pill" id="p-fps">解码 — fps</span>
+  <span class="pill" id="p-lat">延迟 — ms</span>
+  <span class="spacer"></span>
+  <button id="reconnect" disabled>重新连接</button>
+  <button id="mute" class="primary">静音</button>
+</header>
+
+<section id="stage">
+  <video id="remote" autoplay muted playsinline></video>
+  <div id="stale-badge">画面已暂停更新 · 当前不是实时画面</div>
+  <div id="overlay">
+    <div class="box">
+      <div class="icon" id="o-icon">◍</div>
+      <h2 id="o-title">正在连接…</h2>
+      <p id="o-text">正在等待信令服务器响应。</p>
+      <div class="code" id="o-code"></div>
+    </div>
+  </div>
+</section>
+
+<aside>
+  <div class="field">
+    <label>房间号</label>
+    <input id="room" value="DEMO" maxlength="32">
+  </div>
+  <div class="row">
+    <button id="join" class="primary">加入观看</button>
+    <button id="leave">离开</button>
+  </div>
+  <div id="join-msg" class="banner muted">未加入。</div>
+
+  <h2>直播状态</h2>
+  <div id="state-banner" class="banner muted">状态：idle</div>
+  <div class="kv" id="state-kv"></div>
+
+  <h2>接收统计（每秒刷新）</h2>
+  <div class="kv" id="stats-kv"></div>
+
+  <h2>端到端延迟（解码校准带，20ms 量化）</h2>
+  <div class="kv" id="lat-kv"></div>
+  <div id="hist"></div>
+  <div id="hist-labels"></div>
+  <div class="hint">延迟由“画面内编码时间戳”与本地时钟求差得到；每 20ms 一档，含 0–20ms 量化误差。</div>
+
+  <h2>文字可读性（固定区域采样）</h2>
+  <div class="kv" id="read-kv"></div>
+  <div class="bar"><i id="sharp-bar"></i></div>
+  <div class="hint" id="read-hint">等待画面…</div>
+
+  <h2>校准带解码</h2>
+  <div id="samples">尚无样本</div>
+  <div class="row" style="margin-top:6px">
+    <button id="save-crops">保存对比画面</button>
+    <button id="reset-metrics">清空统计</button>
+  </div>
+</aside>
+
+<script type="module">
+import { decodeBits, sampleBlockBits, laplacianVariance, textPixelRatio } from './shared/calib.js';
+import { SignalClient, createPeerConnection, selectedPair } from './shared/rtc.js';
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const ICE_MODE = params.get('ice') === 'relay' ? 'relay' : 'all';
+
+const S = {
+  IDLE: 'idle',
+  CONNECTING: 'connecting',
+  WAITING_PRESENTER: 'waiting-presenter',
+  PRESENTER_IDLE: 'presenter-idle',
+  REQUESTING: 'requesting',
+  CONNECTING_PC: 'connecting-media',
+  LIVE: 'live',
+  FROZEN: 'frozen',
+  PERMISSION_DENIED: 'permission-denied',
+  CAPTURE_FAILED: 'capture-failed',
+  ENDED: 'ended',
+  SOURCE_SWITCHING: 'source-switching',
+  SIGNAL_LOST: 'signal-lost',
+  MEDIA_FAILED: 'media-failed',
+};
+
+let state = S.IDLE;
+let stateText = '';
+let signal = null;
+let pc = null;
+let iceServers = [];
+let room = params.get('room') || 'DEMO';
+$('room').value = room;
+let presenterState = null;
+let lastFrameAt = 0;
+let lastDecodedFrames = 0;
+let lastVideoTime = 0;
+let staleTimer = null;
+let statsTimer = null;
+let samplerTimer = null;
+let reconnectable = false;
+// True once this viewer has received media. Used to keep late signaling
+// messages from downgrading a terminal state.
+let everLive = false;
+
+// Optional fixture time base, supplied by the experiment harness:
+// wall clock (ms) at which the fixture's calibration clock read zero.
+let fixtureT0Wall = Number(params.get('t0Wall') || 0);
+// The harness measures regions on the captured desktop, in CSS pixels of the
+// virtual screen. `screen=WxH` lets us rescale them to whatever resolution the
+// encoder actually produced, instead of assuming a 1:1 pixel match.
+const screenSize = (() => {
+  const v = params.get('screen');
+  if (!v) return null;
+  const [w, h] = v.split('x').map(Number);
+  return w > 0 && h > 0 ? { w, h } : null;
+})();
+// Rect of the calibration strip, in screen coordinates unless already scaled.
+let stripRect = params.get('strip')
+  ? (([x, y, w, h]) => ({ x, y, w, h }))(params.get('strip').split(',').map(Number))
+  : null;
+// Rect of the fine-text region used for readability sampling.
+let textRect = params.get('text')
+  ? (([x, y, w, h]) => ({ x, y, w, h }))(params.get('text').split(',').map(Number))
+  : null;
+// Original screen-space rects are kept as the source of truth. The adaptive
+// controller changes the encoded size during a session, so the scaled rects
+// must be re-derived whenever the frame dimensions change - caching them once
+// would leave the crop pointing at the wrong pixels after a resolution switch.
+let stripScreenRect = stripRect ? { ...stripRect } : null;
+let textScreenRect = textRect ? { ...textRect } : null;
+let stripLocated = false;
+let textLocated = false;
+let rectsForFrame = '';
+
+function fromScreenRects() {
+  if (!video.videoWidth || !video.videoHeight) return;
+  const dims = `${video.videoWidth}x${video.videoHeight}`;
+  if (dims === rectsForFrame) return;
+  rectsForFrame = dims;
+  const sx = screenSize ? video.videoWidth / screenSize.w : 1;
+  const sy = screenSize ? video.videoHeight / screenSize.h : 1;
+  // A rect the viewer already located inside the video frame is authoritative;
+  // only re-project the ones that came from the harness in screen space.
+  if (stripScreenRect) {
+    stripRect = {
+      x: stripScreenRect.x * sx,
+      y: stripScreenRect.y * sy,
+      w: stripScreenRect.w * sx,
+      h: stripScreenRect.h * sy,
+      scaled: true,
+      // Keep the "we know where it is" flag so latency decoding resumes on the
+      // very next frame instead of waiting for another wide search.
+      refined: !!stripLocated,
+    };
+  }
+  if (textScreenRect) {
+    textRect = {
+      x: textScreenRect.x * sx,
+      y: textScreenRect.y * sy,
+      w: textScreenRect.w * sx,
+      h: textScreenRect.h * sy,
+      scaled: true,
+      refined: !!textLocated,
+    };
+  }
+}
+
+
+const latencySamples = [];
+const decodeSamples = [];
+let readSamples = [];
+let frozenEpisodes = 0;
+let frameGapsMs = [];
+
+const video = $('remote');
+const overlay = $('overlay');
+const staleBadge = $('stale-badge');
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function setPill(el, cls, text) {
+  el.className = `pill ${cls}`;
+  el.textContent = text;
+}
+
+function setState(next, text = '') {
+  if (state === next && text === stateText) return;
+  state = next;
+  stateText = text;
+  renderState();
+}
+
+function overlayFor(s) {
+  switch (s) {
+    case S.IDLE:
+      return ['◍', '未加入观看', '点击“加入观看”开始接收。', ''];
+    case S.CONNECTING:
+      return ['◍', '正在连接…', '正在连接信令服务器。', ''];
+    case S.WAITING_PRESENTER:
+      return ['◌', '等待演示者', '房间里还没有演示者。', 'no-presenter'];
+    case S.PRESENTER_IDLE:
+      return ['◌', '演示者尚未共享', '演示者已加入，但还没有开始屏幕共享。', 'presenter-idle'];
+    case S.REQUESTING:
+      return ['↻', '正在请求画面', '已通知演示者建立连接。', 'requesting'];
+    case S.CONNECTING_PC:
+      return ['↻', '正在建立媒体连接', 'ICE 协商中…', 'connecting-media'];
+    case S.PERMISSION_DENIED:
+      return ['⊘', '演示者已取消屏幕权限', '演示者拒绝了屏幕共享权限，没有画面。', 'permission-denied'];
+    case S.CAPTURE_FAILED:
+      return ['⊘', '演示者采集失败', '演示者无法读取所选来源。', 'capture-failed'];
+    case S.SOURCE_SWITCHING:
+      return ['⇄', '演示者正在切换共享源', '画面可能短暂中断，请不要把最后一帧当作实时画面。', 'source-switching'];
+    case S.ENDED:
+      return ['■', '直播已结束', '演示者结束了共享。最后一帧已清除，不再代表实时画面。', 'ended'];
+    case S.SIGNAL_LOST:
+      return ['⚠', '与服务器断开', '信令连接已断开，无法确认演示者状态。', 'signal-lost'];
+    case S.MEDIA_FAILED:
+      return ['⚠', '媒体连接失败', 'P2P/TURN 连接失败，请重试或检查网络。', 'media-failed'];
+    case S.FROZEN:
+      return ['⏸', '画面暂停更新', '仍在直播，但超过 1.5 秒没有收到新帧。', 'frozen'];
+    default:
+      return ['◍', s, '', s];
+  }
+}
+
+function renderState() {
+  const [icon, title, text, code] = overlayFor(state);
+  $('o-icon').textContent = icon;
+  $('o-title').textContent = title;
+  $('o-text').textContent = text;
+  $('o-code').textContent = code;
+
+  const showOverlay = state !== S.LIVE && state !== S.FROZEN;
+  overlay.classList.toggle('hidden', !showOverlay);
+  // Clear the last frame for terminal/stale states so it can't masquerade as
+  // a live picture. Frozen keeps the frame but stamps it as stale.
+  const mustClear = [S.ENDED, S.PERMISSION_DENIED, S.CAPTURE_FAILED, S.SOURCE_SWITCHING, S.SIGNAL_LOST, S.WAITING_PRESENTER, S.PRESENTER_IDLE, S.IDLE, S.MEDIA_FAILED].includes(state);
+  video.classList.toggle('stale', mustClear);
+  if (mustClear) {
+    video.srcObject = null;
+  }
+  staleBadge.classList.toggle('show', state === S.FROZEN);
+
+  const pillMap = {
+    [S.LIVE]: ['live', '● 直播中'],
+    [S.FROZEN]: ['warn', '● 画面暂停'],
+    [S.ENDED]: ['bad', '■ 已结束'],
+    [S.PERMISSION_DENIED]: ['bad', '⊘ 权限被拒'],
+    [S.CAPTURE_FAILED]: ['bad', '⊘ 采集失败'],
+    [S.SOURCE_SWITCHING]: ['warn', '⇄ 切换来源'],
+    [S.SIGNAL_LOST]: ['bad', '⚠ 信令断开'],
+    [S.MEDIA_FAILED]: ['bad', '⚠ 媒体失败'],
+    [S.WAITING_PRESENTER]: ['warn', '◌ 等待演示者'],
+    [S.PRESENTER_IDLE]: ['warn', '◌ 未开始共享'],
+    [S.CONNECTING]: ['', '连接中…'],
+    [S.REQUESTING]: ['', '请求画面…'],
+    [S.CONNECTING_PC]: ['', '协商中…'],
+    [S.IDLE]: ['', '未加入'],
+  };
+  const [cls, label] = pillMap[state] || ['', state];
+  setPill($('p-state'), cls, label);
+
+  $('state-banner').className = `banner ${
+    cls === 'bad' ? 'bad' : cls === 'warn' ? 'warn' : cls === 'live' ? 'ok' : 'muted'
+  }`;
+  $('state-banner').textContent = `状态：${state}${stateText ? ` · ${stateText}` : ''}`;
+
+  const kv = [];
+  if (presenterState) {
+    kv.push(['演示者状态', presenterState.state]);
+    if (presenterState.reason) kv.push(['结束原因', presenterState.reason]);
+  }
+  kv.push(['房间', room]);
+  $('state-kv').innerHTML = kv
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+
+  $('reconnect').disabled = !reconnectable;
+}
+
+// ---------------- signaling ----------------
+async function join() {
+  if (signal) return;
+  room = $('room').value.trim() || 'DEMO';
+  setState(S.CONNECTING);
+  $('join-msg').className = 'banner muted';
+  $('join-msg').textContent = '连接信令…';
+  signal = new SignalClient({
+    role: 'viewer',
+    room,
+    name: params.get('name') || '观看者',
+    onOpen: () => {
+      $('join-msg').className = 'banner ok';
+      $('join-msg').textContent = `已加入房间 ${room}`;
+      $('join').disabled = true;
+    },
+    onClose: ({ byUser }) => {
+      teardownMedia();
+      signal = null;
+      $('join').disabled = false;
+      if (!byUser) {
+        reconnectable = true;
+        setState(S.SIGNAL_LOST);
+      } else {
+        setState(S.IDLE);
+      }
+    },
+    onMessage: (msg) => handleSignal(msg),
+  });
+  try {
+    await signal.connect();
+  } catch (err) {
+    $('join-msg').className = 'banner bad';
+    $('join-msg').textContent = `连接失败：${err.message}`;
+    reconnectable = true;
+    setState(S.SIGNAL_LOST);
+  }
+}
+
+function handleSignal(msg) {
+  switch (msg.t) {
+    case 'welcome':
+      iceServers = msg.iceServers || [];
+      presenterState = msg.presenterState || null;
+      applyPresenterState(msg.presenterId ? msg.presenterState : null, msg.presenterId);
+      return;
+    case 'state':
+      presenterState = msg;
+      applyPresenterState(msg, msg.from);
+      if (msg.state === 'live' || msg.state === 'ready') {
+        if (state !== S.LIVE && state !== S.FROZEN) setState(S.REQUESTING);
+        requestStream();
+      }
+      return;
+    case 'peer-join':
+      if (msg.peer.role === 'presenter') {
+        applyPresenterState(presenterState, msg.peer.id);
+      }
+      return;
+    case 'peer-leave':
+      return;
+    case 'error':
+      $('join-msg').className = 'banner bad';
+      $('join-msg').textContent = msg.message;
+      // "No presenter" is only meaningful before we ever had a stream. After a
+      // session ended, a late request must not overwrite the terminal state
+      // with a hopeful "waiting for presenter".
+      if (msg.code === 'no-presenter' && !everLive) setState(S.WAITING_PRESENTER);
+      return;
+    case 'signal':
+      onPeerSignal(msg.from, msg.payload);
+      return;
+    default:
+      return;
+  }
+}
+
+function applyPresenterState(ps, presenterId) {
+  // Terminal states are decided by the state itself, not by whether a presenter
+  // id is present. When a presenter's socket drops, the server broadcasts an
+  // `ended` state with no `from` field; treating "no id" as "waiting for a
+  // presenter" would hide a signaling loss behind a benign-looking overlay.
+  if (ps && ps.state === 'ended') {
+    teardownMedia();
+    if (ps.reason === 'presenter-disconnected') setState(S.SIGNAL_LOST, 'presenter signaling lost');
+    else setState(S.ENDED, ps.reason || '');
+    return;
+  }
+  if (ps && ps.state === 'signaling-disconnected') {
+    teardownMedia();
+    setState(S.SIGNAL_LOST);
+    return;
+  }
+  if (!presenterId) {
+    if (!ps || !['live', 'ready'].includes(ps.state)) setState(S.WAITING_PRESENTER);
+    return;
+  }
+  if (!ps || ps.state === 'idle') {
+    setState(S.PRESENTER_IDLE);
+    return;
+  }
+  if (ps.state === 'ended') {
+    teardownMedia();
+    // The presenter's socket dropping is not the same as a clean "stop share":
+    // we lost the ability to confirm what is being presented. Say so instead of
+    // implying the stream ended normally.
+    if (ps.reason === 'presenter-disconnected') setState(S.SIGNAL_LOST, 'presenter signaling lost');
+    else setState(S.ENDED, ps.reason || '');
+    return;
+  }
+  if (ps.state === 'permission-denied') {
+    teardownMedia();
+    setState(S.PERMISSION_DENIED);
+    return;
+  }
+  if (ps.state === 'capture-failed') {
+    teardownMedia();
+    setState(S.CAPTURE_FAILED);
+    return;
+  }
+  if (ps.state === 'switching-source') {
+    setState(S.SOURCE_SWITCHING);
+    return;
+  }
+  if (ps.state === 'source-muted') {
+    setState(S.FROZEN, 'presenter source muted');
+    return;
+  }
+  if (ps.state === 'signaling-disconnected') {
+    teardownMedia();
+    setState(S.SIGNAL_LOST);
+    return;
+  }
+  if (ps.state === 'live' || ps.state === 'ready' || ps.state === 'requesting-permission') {
+    if (ps.state === 'requesting-permission') {
+      setState(S.PRESENTER_IDLE, 'waiting permission');
+      return;
+    }
+    const wantsStream = [
+      S.IDLE,
+      S.CONNECTING,
+      S.WAITING_PRESENTER,
+      S.PRESENTER_IDLE,
+      S.REQUESTING,
+    ].includes(state);
+    if (wantsStream && pc?.connectionState !== 'connected') {
+      setState(S.REQUESTING);
+      requestStream();
+    } else if (state === S.SOURCE_SWITCHING) {
+      setState(S.LIVE);
+    }
+  }
+}
+
+let requestStream = () => {};
+let requestedAt = 0;
+{
+  let sent = false;
+  requestStream = () => {
+    if (!signal || sent) return;
+    signal.send({ t: 'request-stream' });
+    sent = true;
+    requestedAt = performance.now();
+  };
+}
+
+async function onPeerSignal(from, payload) {
+  if (!pc) {
+    pc = createPeerConnection(iceServers, {
+      iceTransportPolicy: ICE_MODE,
+      onLocalCandidate: (c) =>
+        signal?.send({ t: 'signal', to: from, payload: { candidate: c } }),
+      onConnectionState: (s) => {
+        if (s === 'connected') {
+          if (state === S.CONNECTING_PC || state === S.REQUESTING) setState(S.LIVE);
+        } else if (s === 'failed') {
+          setState(S.MEDIA_FAILED);
+        }
+      },
+    });
+    pc.addEventListener('track', (ev) => {
+      // The presenter may or may not attach a stream id; fall back to a local
+      // stream wrapping the received track so playback always starts.
+      let stream = ev.streams[0];
+      if (!stream) {
+        stream = new MediaStream([ev.track]);
+      }
+      video.srcObject = stream;
+      video.play().catch(() => {});
+      video.classList.remove('stale');
+      lastFrameAt = performance.now();
+      everLive = true;
+      setState(S.LIVE);
+      startSampling();
+    });
+  }
+  if (payload.description) {
+    await pc.setRemoteDescription(payload.description);
+    if (payload.description.type === 'offer') {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      signal?.send({
+        t: 'signal',
+        to: from,
+        payload: { description: pc.localDescription },
+      });
+      setState(S.CONNECTING_PC);
+    }
+  } else if (payload.candidate) {
+    try {
+      await pc.addIceCandidate(payload.candidate);
+    } catch {
+      /* ignore late candidates */
+    }
+  }
+}
+
+function teardownMedia() {
+  stopSampling();
+  if (pc) {
+    pc.getSenders().forEach((s) => s.track?.stop?.());
+    pc.close();
+    pc = null;
+  }
+  video.srcObject = null;
+  lastDecodedFrames = 0;
+  lastVideoTime = 0;
+}
+
+// ---------------- freeze detection ----------------
+function startSampling() {
+  stopSampling();
+  lastFrameAt = performance.now();
+  statsTimer = setInterval(pollInbound, 1000);
+  samplerTimer = setInterval(sampleFrame, 400);
+  startPresentLoop();
+  if (staleTimer) clearInterval(staleTimer);
+  staleTimer = setInterval(() => {
+    if (!pc || pc.connectionState !== 'connected') return;
+    const idle = performance.now() - lastFrameAt;
+    if (idle > 1500) {
+      if (state === S.LIVE) {
+        frozenEpisodes++;
+        setState(S.FROZEN, `${Math.round(idle)}ms without a new frame`);
+      }
+    } else if (state === S.FROZEN) {
+      setState(S.LIVE, 'frames resumed');
+    }
+  }, 250);
+}
+
+function stopSampling() {
+  if (statsTimer) clearInterval(statsTimer);
+  if (samplerTimer) clearInterval(samplerTimer);
+  if (staleTimer) clearInterval(staleTimer);
+  statsTimer = samplerTimer = staleTimer = null;
+  stopPresentLoop();
+}
+
+let lastInbound = null;
+
+async function pollInbound() {
+  if (!pc) return;
+  let stats;
+  try {
+    stats = await pc.getStats();
+  } catch {
+    return;
+  }
+  let inbound = null;
+  let pair = null;
+  stats.forEach((s) => {
+    if (s.type === 'inbound-rtp' && s.kind === 'video') inbound = s;
+    if (s.type === 'candidate-pair' && s.state === 'succeeded' && (s.selected || s.nominated)) pair = s;
+  });
+  if (!inbound) return;
+
+  const now = performance.now();
+  const prev = lastInbound;
+  const dt = prev ? Math.max(0.2, (now - prev.at) / 1000) : 0;
+  const decodedDelta = prev ? Math.max(0, (inbound.framesDecoded ?? 0) - prev.decoded) : 0;
+  const jitterMs = inbound.jitter != null ? inbound.jitter * 1000 : 0;
+  const fps = dt ? decodedDelta / dt : 0;
+
+  if (decodedDelta > 0) lastFrameAt = now;
+  if (prev && decodedDelta === 0 && dt > 1) {
+    frameGapsMs.push(Math.round(dt * 1000));
+    if (frameGapsMs.length > 80) frameGapsMs.shift();
+  }
+
+  const w = inbound.frameWidth ?? 0;
+  const h = inbound.frameHeight ?? 0;
+  setPill($('p-res'), '', `分辨率 ${w || '—'}x${h || '—'}`);
+  setPill($('p-fps'), '', `解码 ${fps.toFixed(1)} fps`);
+
+  const lostDelta = Math.max(0, (inbound.packetsLost ?? 0) - (prev?.lost ?? 0));
+  const recvDelta = Math.max(0, (inbound.packetsReceived ?? 0) - (prev?.recv ?? 0));
+  const lossPct = (lostDelta + recvDelta) > 20 ? (lostDelta / (lostDelta + recvDelta)) * 100 : 0;
+  const pairInfo = await selectedPair(pc);
+  if (pairInfo) window.__viewerPair = pairInfo;
+  // The pair's candidate types are what tell a viewer whether media is going
+  // through the TURN relay or over a direct route; the pair id alone says
+  // nothing.
+  const pathLabel = pairInfo
+    ? `${pairInfo.localType ?? '?'} → ${pairInfo.remoteType ?? '?'}`
+    : '—';
+  const rows = [
+    ['接收帧/秒', fps.toFixed(1)],
+    ['解码尺寸', w ? `${w}x${h}` : '—'],
+    ['累计解码帧', inbound.framesDecoded ?? 0],
+    ['丢帧（解码器）', inbound.framesDropped ?? 0],
+    ['丢包（累计 / 本窗口）', `${inbound.packetsLost ?? 0} / ${lossPct.toFixed(1)}%`],
+    ['抖动', `${jitterMs.toFixed(1)} ms`],
+    ['码率', ((inbound.bytesReceived ?? 0) - (prev?.bytes ?? 0)) > 0 && dt
+      ? `${Math.round((((inbound.bytesReceived ?? 0) - (prev?.bytes ?? 0)) * 8) / dt / 1000)} kbps`
+      : '—'],
+    ['卡顿次数', inbound.freezeCount ?? 0],
+    ['NACK', inbound.nackCount ?? 0],
+    ['PLI/FIR', inbound.pliCount ?? 0],
+    ['RTT', pair?.currentRoundTripTime != null ? `${Math.round(pair.currentRoundTripTime * 1000)} ms` : '—'],
+    ['传输路径', pathLabel],
+    ['冻结次数（本地判定）', frozenEpisodes],
+  ];
+  $('stats-kv').innerHTML = rows
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+
+  window.__viewerStats = {
+    framesDecoded: inbound.framesDecoded ?? 0,
+    framesDropped: inbound.framesDropped ?? 0,
+    frameWidth: w,
+    frameHeight: h,
+    packetsLost: inbound.packetsLost ?? 0,
+    jitterMs,
+    decodeFps: Number(fps.toFixed(2)),
+    freezeCount: inbound.freezeCount ?? 0,
+    nackCount: inbound.nackCount ?? 0,
+    pliCount: inbound.pliCount ?? 0,
+    bytesReceived: inbound.bytesReceived ?? 0,
+    pair: pairInfo,
+    at: Date.now(),
+  };
+
+  lastInbound = {
+    at: now,
+    decoded: inbound.framesDecoded ?? 0,
+    bytes: inbound.bytesReceived ?? 0,
+    lost: inbound.packetsLost ?? 0,
+    recv: inbound.packetsReceived ?? 0,
+  };
+}
+
+// ---------------- frame analysis ----------------
+const work = document.createElement('canvas');
+const wctx = work.getContext('2d', { willReadFrequently: true });
+// Dedicated small canvas for the calibration strip. Decoding on every presented
+// frame is only affordable because this crop is ~600x120, not the whole video.
+const stripCanvas = document.createElement('canvas');
+const sctx = stripCanvas.getContext('2d', { willReadFrequently: true });
+
+function grabVideoCanvas() {
+  if (!video.videoWidth || video.readyState < 2) return null;
+  work.width = video.videoWidth;
+  work.height = video.videoHeight;
+  wctx.drawImage(video, 0, 0, work.width, work.height);
+  return work;
+}
+
+function refineStripRect(canvas) {
+  if (!stripRect) return null;
+  let img;
+  try {
+    img = wctx.getImageData(0, 0, canvas.width, canvas.height);
+  } catch {
+    return null;
+  }
+  const candidates = [];
+  // A rect derived from screen coordinates can be off by tens of pixels (window
+  // chrome, scale rounding), so the first pass searches wide and coarse; once a
+  // hit is known the search stays narrow.
+  const span = stripRect.refined ? 16 : 48;
+  const step = stripRect.refined ? 2 : 4;
+  for (let dx = -span; dx <= span; dx += step) {
+    for (let dy = -span; dy <= span; dy += step) {
+      const box = { ...stripRect, x: stripRect.x + dx, y: stripRect.y + dy };
+      if (box.x < 0 || box.y < 0) continue;
+      if (box.x + box.w > img.width || box.y + box.h > img.height) continue;
+      const bits = sampleBlockBits(img, box);
+      const decoded = decodeBits(bits);
+      if (decoded) candidates.push({ box, decoded, dx, dy });
+    }
+  }
+  if (!candidates.length) return null;
+  const best = candidates.sort((a, b) => Math.abs(a.dx) + Math.abs(a.dy) - (Math.abs(b.dx) + Math.abs(b.dy)))[0];
+  stripLocated = true;
+  const found = { ...best.box, refined: true, scaled: true };
+  // Remember where the strip really is, in *screen* coordinates, so a later
+  // resolution change re-projects from the corrected position instead of
+  // falling back to the original estimate.
+  if (screenSize && stripScreenRect) {
+    const sx = video.videoWidth / screenSize.w;
+    const sy = video.videoHeight / screenSize.h;
+    stripScreenRect = {
+      x: found.x / sx,
+      y: found.y / sy,
+      w: found.w / sx,
+      h: found.h / sy,
+    };
+  }
+  stripRect = found;
+  // The text sample region came from the same screen-space estimate, so apply
+  // the same correction to keep both crops pointing at the same content.
+  if (textRect && !textRect.refined) {
+    textLocated = true;
+    textRect = { ...textRect, x: textRect.x + best.dx, y: textRect.y + best.dy, refined: true };
+    if (screenSize) {
+      const sx = video.videoWidth / screenSize.w;
+      const sy = video.videoHeight / screenSize.h;
+      textScreenRect = { x: textRect.x / sx, y: textRect.y / sy, w: textRect.w / sx, h: textRect.h / sy };
+    }
+  }
+  return best.decoded;
+}
+
+function sampleFrame() {
+  const canvas = grabVideoCanvas();
+  if (!canvas) return;
+  fromScreenRects();
+  let img;
+  try {
+    img = wctx.getImageData(0, 0, canvas.width, canvas.height);
+  } catch {
+    return;
+  }
+
+  let decoded = null;
+  if (stripRect) {
+    const bits = sampleBlockBits(img, stripRect);
+    decoded = decodeBits(bits);
+    if (!decoded && !stripRect.refined) decoded = refineStripRect(canvas);
+  }
+
+  if (decoded) {
+    const rec = { ...decoded, at: Date.now() };
+    decodeSamples.push(rec);
+    if (decodeSamples.length > 800) decodeSamples.shift();
+
+    recordLatency(decoded);
+    if (decodeSamples.length % 4 === 1) {
+      const text = decodeSamples
+        .slice(-8)
+        .map((d) => `${new Date(d.at).toLocaleTimeString('en-GB', { hour12: false })}.${String(d.at % 1000).padStart(3, '0')} t=${d.ticks} scroll=${d.scrollTop} ${d.mode}`)
+        .join('\n');
+      $('samples').textContent = text;
+    }
+  } else if (stripRect) {
+    $('samples').textContent = stripRect.refined
+      ? '校准带解码失败（可能模糊或帧撕裂）'
+      : '校准带定位中…';
+  }
+
+  if (textRect) {
+    const x = Math.max(0, Math.min(img.width - 2, Math.round(textRect.x)));
+    const y = Math.max(0, Math.min(img.height - 2, Math.round(textRect.y)));
+    const w = Math.max(2, Math.min(img.width - x, Math.round(textRect.w)));
+    const h = Math.max(2, Math.min(img.height - y, Math.round(textRect.h)));
+    const sub = wctx.getImageData(x, y, w, h);
+    const sharp = laplacianVariance(sub);
+    const inkRatio = textPixelRatio(sub);
+    // Record the frame size this sample came from. The adaptive controller
+    // changes the encoded size mid-session, and a trailing average that mixes
+    // 1080p samples with 360p ones describes neither - the consumer has to be
+    // able to attribute a reading to the rung it was measured at.
+    const rec = { at: Date.now(), sharpness: sharp, inkRatio, w, h, vw: canvas.width, vh: canvas.height };
+    readSamples.push(rec);
+    if (readSamples.length > 300) readSamples.shift();
+    window.__viewerReadStats = rec;
+  }
+
+  renderLatency();
+  renderReadability();
+}
+
+// Latency is measured when a frame is actually *presented*, not on a polling
+// timer: rVFC fires per decoded frame and reports the compositor deadline, so
+// the sample reflects what the viewer's eye sees.
+function recordLatency(decoded) {
+  if (!fixtureT0Wall || !decoded) return;
+  const frameWall = fixtureT0Wall + decoded.ticks * 20;
+  const latency = Date.now() - frameWall;
+  // Guard against clock wrap and out-of-range reads.
+  if (latency > -200 && latency < 15000) {
+    latencySamples.push({ latency, at: Date.now(), ticks: decoded.ticks, mode: decoded.mode });
+    if (latencySamples.length > 4000) latencySamples.shift();
+  }
+}
+
+function decodeStripAtPresent() {
+  if (!stripRect || !stripRect.refined) return null;
+  const v = video;
+  if (!v.videoWidth) return null;
+  const x = Math.max(0, Math.min(v.videoWidth - 2, Math.round(stripRect.x)));
+  const y = Math.max(0, Math.min(v.videoHeight - 2, Math.round(stripRect.y)));
+  const w = Math.max(2, Math.min(v.videoWidth - x, Math.round(stripRect.w)));
+  const h = Math.max(2, Math.min(v.videoHeight - y, Math.round(stripRect.h)));
+  stripCanvas.width = w;
+  stripCanvas.height = h;
+  sctx.drawImage(v, x, y, w, h, 0, 0, w, h);
+  let img;
+  try {
+    img = sctx.getImageData(0, 0, w, h);
+  } catch {
+    return null;
+  }
+  return decodeBits(sampleBlockBits(img, { x: 0, y: 0, width: w, height: h }));
+}
+
+let rvfcHandle = null;
+function startPresentLoop() {
+  if (!video.requestVideoFrameCallback) return;
+  const tick = () => {
+    if (!video.videoWidth) {
+      rvfcHandle = video.requestVideoFrameCallback(tick);
+      return;
+    }
+    const decoded = decodeStripAtPresent();
+    if (decoded) {
+      const rec = { ...decoded, at: Date.now() };
+      decodeSamples.push(rec);
+      if (decodeSamples.length > 800) decodeSamples.shift();
+      recordLatency(decoded);
+      renderLatency();
+    }
+    rvfcHandle = video.requestVideoFrameCallback(tick);
+  };
+  if (rvfcHandle != null) video.cancelVideoFrameCallback?.(rvfcHandle);
+  rvfcHandle = video.requestVideoFrameCallback(tick);
+}
+
+function stopPresentLoop() {
+  if (rvfcHandle != null) video.cancelVideoFrameCallback?.(rvfcHandle);
+  rvfcHandle = null;
+}
+
+function quantile(arr, q) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const idx = Math.min(s.length - 1, Math.max(0, Math.round(q * (s.length - 1))));
+  return s[idx];
+}
+
+function renderLatency() {
+  const vals = latencySamples.map((s) => s.latency);
+  if (!vals.length) {
+    $('lat-kv').innerHTML = '<span>样本</span><b>0</b>';
+    setPill($('p-lat'), '', '延迟 — ms');
+    return;
+  }
+  const p50 = quantile(vals, 0.5);
+  const p95 = quantile(vals, 0.95);
+  const max = Math.max(...vals);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  $('lat-kv').innerHTML = [
+    ['样本数', vals.length],
+    ['中位数 p50', `${p50} ms`],
+    ['p95', `${p95} ms`],
+    ['最大', `${max} ms`],
+    ['均值', `${mean.toFixed(1)} ms`],
+  ]
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+  setPill($('p-lat'), p95 > 900 ? 'bad' : p95 > 400 ? 'warn' : 'live', `延迟 p50 ${p50}ms / p95 ${p95}ms`);
+
+  const buckets = new Array(12).fill(0);
+  for (const v of vals) {
+    const b = Math.min(11, Math.max(0, Math.floor(v / 100)));
+    buckets[b]++;
+  }
+  const peak = Math.max(...buckets, 1);
+  $('hist').innerHTML = buckets
+    .map((n) => `<i style="height:${Math.max(1, (n / peak) * 54)}px" title="${n}"></i>`)
+    .join('');
+  $('hist-labels').innerHTML = buckets
+    .map((_, i) => `<span>${i * 100}</span>`)
+    .join('');
+}
+
+function renderReadability() {
+  if (!readSamples.length) return;
+  const recent = readSamples.slice(-8);
+  const sharp = recent.reduce((a, b) => a + b.sharpness, 0) / recent.length;
+  const ink = recent.reduce((a, b) => a + b.inkRatio, 0) / recent.length;
+  const decodedOk = decodeSamples.length
+    ? decodeSamples.slice(-10).filter((d) => d).length / Math.min(10, decodeSamples.length)
+    : 0;
+  $('read-kv').innerHTML = [
+    ['锐度（Laplacian 方差）', sharp.toFixed(1)],
+    ['深色像素占比', `${(ink * 100).toFixed(2)}%`],
+    ['校准带解码成功率', `${(decodedOk * 100).toFixed(0)}%`],
+    ['采样区域', textRect ? `${textRect.w}x${textRect.h}` : '—'],
+  ]
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+  $('sharp-bar').style.width = `${Math.min(100, (sharp / 800) * 100)}%`;
+  $('read-hint').textContent =
+    sharp < 40
+      ? '锐度偏低：文字边缘可能糊在一起，建议提高清晰度或停止滚动。'
+      : sharp < 120
+      ? '锐度中等：正文可读，细节注释可能需要更清晰的档位。'
+      : '锐度良好：小号正文与注释应可辨认。';
+  window.__viewerReadAgg = { sharpness: sharp, inkRatio: ink, decodeOk: decodedOk };
+}
+
+// ---------------- controls ----------------
+$('join').addEventListener('click', join);
+$('reconnect').addEventListener('click', () => {
+  reconnectable = false;
+  join();
+});
+$('leave').addEventListener('click', () => {
+  signal?.close();
+  signal = null;
+  teardownMedia();
+  setState(S.IDLE);
+  $('join').disabled = false;
+});
+$('mute').addEventListener('click', () => {
+  video.muted = !video.muted;
+  $('mute').textContent = video.muted ? '静音' : '取消静音';
+});
+$('save-crops').addEventListener('click', () => {
+  window.__viewerSaveCrops?.();
+});
+$('reset-metrics').addEventListener('click', () => {
+  latencySamples.length = 0;
+  decodeSamples.length = 0;
+  readSamples = [];
+  frameGapsMs.length = 0;
+  frozenEpisodes = 0;
+  renderLatency();
+});
+
+// Save comparable crops of the *received* frame: the whole frame, the
+// calibration strip, and the fine-text region, plus the numbers that describe
+// them. Files go to the server's evidence directory so they sit next to the
+// presenter-side crops from the same run.
+window.__viewerSaveCrops = async function saveCrops(label) {
+  const run = params.get('run') || 'manual';
+  const tag = label || new Date().toISOString().replace(/[:.]/g, '-');
+  const canvas = grabVideoCanvas();
+  if (!canvas) return { ok: false, error: 'no frame' };
+  const saved = [];
+  const strip = stripRect ? await window.__viewer.captureRegion(stripRect) : null;
+  const text = textRect ? await window.__viewer.captureRegion(textRect) : null;
+  const full = await window.__viewer.captureFull();
+  const files = [
+    [`${tag}-full.png`, full],
+    [`${tag}-strip.png`, strip],
+    [`${tag}-text.png`, text],
+  ];
+  for (const [name, dataUrl] of files) {
+    if (!dataUrl) continue;
+    const body = Uint8Array.from(atob(dataUrl.split(',')[1]), (c) => c.charCodeAt(0));
+    const res = await fetch(`/api/evidence/${encodeURIComponent(run)}/${encodeURIComponent(name)}`, {
+      method: 'POST',
+      body,
+    });
+    saved.push({ name, ok: res.ok });
+  }
+  const meta = {
+    at: new Date().toISOString(),
+    video: { width: video.videoWidth, height: video.videoHeight },
+    stripRect,
+    textRect,
+    stats: window.__viewerStats ?? null,
+    read: window.__viewerReadAgg ?? null,
+    latency: renderLatencySnapshot(),
+    state,
+  };
+  const metaBody = new TextEncoder().encode(JSON.stringify(meta, null, 2));
+  await fetch(`/api/evidence/${encodeURIComponent(run)}/${encodeURIComponent(`${tag}-meta.json`)}`, {
+    method: 'POST',
+    body: metaBody,
+  });
+  $('samples').textContent = `已保存 ${saved.filter((s) => s.ok).length} 张裁剪图到 evidence/${run}/`;
+  return { ok: true, run, saved, meta };
+};
+
+function renderLatencySnapshot() {
+  const vals = latencySamples.map((x) => x.latency);
+  if (!vals.length) return { n: 0 };
+  return {
+    n: vals.length,
+    p50: quantile(vals, 0.5),
+    p95: quantile(vals, 0.95),
+    max: Math.max(...vals),
+  };
+}
+
+// The live panel keeps every sample of the session, which is what a person
+// watching wants (it settles, it does not jitter). But that distribution also
+// spans the whole network history: after a 300 kbps collapse, a later healthy
+// phase still reports the collapse's p95 because 4000 old samples are still in
+// the array. For phase-by-phase numbers the harness needs a time window.
+function latencyWindow(ms = 5000) {
+  const cutoff = Date.now() - ms;
+  const vals = latencySamples.filter((s) => s.at >= cutoff).map((s) => s.latency);
+  if (vals.length < 6) return { n: vals.length, p50: null, p95: null, max: null, windowMs: ms };
+  return {
+    n: vals.length,
+    p50: quantile(vals, 0.5),
+    p95: quantile(vals, 0.95),
+    max: Math.max(...vals),
+    windowMs: ms,
+  };
+}
+
+// test hooks
+window.__viewer = {
+  join,
+  state: () => state,
+  // Compact snapshot for the experiment harness. The full snapshot() carries
+  // every latency sample, which is too much to poll every 500 ms.
+  summary() {
+    const vals = latencySamples.map((x) => x.latency);
+    const recentRead = readSamples.slice(-40);
+    const recentDecode = decodeSamples.slice(-40);
+    const avg = (rows, k) =>
+      rows.length ? rows.reduce((a, b) => a + b[k], 0) / rows.length : null;
+    // Only average samples taken at the frame size currently on screen. A
+    // trailing window that spans a resolution switch averages 1080p and 360p
+    // readings together, which can make quality look *better* at the lower
+    // rung - exactly the kind of misleading number this report must avoid.
+    const curVw = video.videoWidth;
+    const curVh = video.videoHeight;
+    const sameSize = recentRead.filter((r) => r.vw === curVw && r.vh === curVh);
+    const readRows = sameSize.length ? sameSize : recentRead;
+    return {
+      state,
+      stateText,
+      presenterState,
+      video: {
+        width: video.videoWidth,
+        height: video.videoHeight,
+        time: Number(video.currentTime.toFixed(3)),
+        paused: video.paused,
+        hasStream: !!video.srcObject,
+        stale: video.classList.contains('stale'),
+        readyState: video.readyState,
+      },
+      stats: window.__viewerStats ?? null,
+      pair: window.__viewerPair ?? null,
+      latency: {
+        n: vals.length,
+        p50: vals.length ? quantile(vals, 0.5) : null,
+        p95: vals.length ? quantile(vals, 0.95) : null,
+        max: vals.length ? Math.max(...vals) : null,
+        mean: vals.length ? Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)) : null,
+      },
+      // Session-wide `latency` above is what the panel shows; this is the same
+      // distribution restricted to the last few seconds, so a phase's latency
+      // is not diluted by samples carried over from an earlier network state.
+      latencyRecent: latencyWindow(5000),
+      read: {
+        sharpness: avg(readRows, 'sharpness'),
+        inkRatio: avg(readRows, 'inkRatio'),
+        decodeOk: recentDecode.length
+          ? recentDecode.filter(Boolean).length / recentDecode.length
+          : null,
+        n: readRows.length,
+        frameWidth: curVw,
+        frameHeight: curVh,
+      },
+      frozenEpisodes,
+      frameGapsMs: frameGapsMs.slice(-40),
+      stripRect,
+      textRect,
+      decodeTail: recentDecode.filter(Boolean).slice(-5),
+    };
+  },
+  setStripRect: (r) => {
+    stripScreenRect = { ...r };
+    stripRect = { ...r };
+    stripLocated = false;
+    rectsForFrame = '';
+    fromScreenRects();
+  },
+  setTextRect: (r) => {
+    textScreenRect = { ...r };
+    textRect = { ...r };
+    textLocated = false;
+    rectsForFrame = '';
+    fromScreenRects();
+  },
+  setT0Wall: (t) => { fixtureT0Wall = Number(t) || 0; },
+  snapshot: () => ({
+    state,
+    stateText,
+    presenterState,
+    room,
+    stats: window.__viewerStats ?? null,
+    pair: window.__viewerPair ?? null,
+    read: window.__viewerReadAgg ?? null,
+    latency: latencySamples.slice(),
+    decode: decodeSamples.slice(-60),
+    frameGapsMs: frameGapsMs.slice(),
+    frozenEpisodes,
+    stripRect,
+    textRect,
+    video: {
+      width: video.videoWidth,
+      height: video.videoHeight,
+      time: video.currentTime,
+      paused: video.paused,
+      hasStream: !!video.srcObject,
+      hidden: video.classList.contains('stale'),
+    },
+  }),
+  async captureRegion(rect) {
+    const canvas = grabVideoCanvas();
+    if (!canvas) return null;
+    const x = Math.round(rect?.x ?? 0);
+    const y = Math.round(rect?.y ?? 0);
+    const w = Math.round(rect?.w ?? canvas.width);
+    const h = Math.round(rect?.h ?? canvas.height);
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.min(w, canvas.width - x));
+    c.height = Math.max(1, Math.min(h, canvas.height - y));
+    c.getContext('2d').drawImage(canvas, x, y, c.width, c.height, 0, 0, c.width, c.height);
+    return c.toDataURL('image/png');
+  },
+  async captureFull() {
+    const canvas = grabVideoCanvas();
+    if (!canvas) return null;
+    const c = document.createElement('canvas');
+    c.width = canvas.width;
+    c.height = canvas.height;
+    c.getContext('2d').drawImage(canvas, 0, 0);
+    return c.toDataURL('image/png');
+  },
+  clearMetrics() {
+    latencySamples.length = 0;
+    decodeSamples.length = 0;
+    readSamples = [];
+  },
+};
+
+renderState();
+
+// Auto-join when the page was opened by the harness or with ?auto=1.
+if (params.get('auto') === '1') join();
+</script>
+</body>
+</html>

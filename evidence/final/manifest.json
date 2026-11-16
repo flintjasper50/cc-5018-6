@@ -1,0 +1,26 @@
+{
+  "startedAt": "2026-11-16T02:23:03.033Z",
+  "scenarios": {
+    "baseline": {
+      "ok": true,
+      "file": "baseline.json"
+    },
+    "motion": {
+      "ok": true,
+      "file": "motion.json"
+    },
+    "congestion": {
+      "ok": true,
+      "file": "congestion.json"
+    },
+    "states": {
+      "ok": true,
+      "file": "states.json"
+    },
+    "floor": {
+      "ok": true,
+      "file": "floor.json"
+    }
+  },
+  "finishedAt": "2026-11-16T02:27:13.519Z"
+}

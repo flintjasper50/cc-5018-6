@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>演示者 · 屏幕共享直播</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #171e26;
+    --line: #2a3542;
+    --ink: #e6edf3;
+    --muted: #93a1b1;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --bad: #f85149;
+    --accent: #2f81f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 13px/1.5 "DejaVu Sans", system-ui, sans-serif;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "top top" "stage side";
+    height: 100vh;
+  }
+  header {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { font-size: 14px; margin: 0 6px 0 0; font-weight: 700; }
+  .conn {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .conn.live { color: var(--ok); border-color: var(--ok); }
+  .conn.warn { color: var(--warn); border-color: var(--warn); }
+  .conn.bad { color: var(--bad); border-color: var(--bad); }
+  .spacer { flex: 1; }
+  button {
+    font: inherit;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: #1f2933;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: #1f6feb; border-color: #1f6feb; }
+  button.danger { background: #7d2320; border-color: #a33; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #stage {
+    grid-area: stage;
+    position: relative;
+    background: #000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  #preview {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  #stage.empty #preview { display: none; }
+  #stage-placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--muted);
+    padding: 30px;
+    gap: 8px;
+  }
+  #stage:not(.empty) #stage-placeholder { display: none; }
+  #state-overlay {
+    position: absolute;
+    inset: auto 12px 12px 12px;
+    background: rgba(10,14,18,.86);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: none;
+    backdrop-filter: blur(3px);
+  }
+  #state-overlay.show { display: block; }
+  #state-overlay b { color: var(--warn); }
+  aside {
+    grid-area: side;
+    border-left: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 10px 12px 40px;
+    background: var(--panel);
+  }
+  aside h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 14px 0 6px;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 10px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11.5px;
+  }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 600; }
+  .banner {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin: 6px 0;
+  }
+  .banner.ok { border-color: var(--ok); color: #9ae6a2; }
+  .banner.warn { border-color: var(--warn); color: #f0c674; }
+  .banner.bad { border-color: var(--bad); color: #ff9a94; }
+  .banner.muted { color: var(--muted); }
+  .ladder {
+    display: grid;
+    gap: 4px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 11px;
+  }
+  .ladder div {
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    color: var(--muted);
+  }
+  .ladder div.active {
+    border-color: var(--accent);
+    color: var(--ink);
+    background: rgba(47,129,247,.12);
+  }
+  .ladder div.floor { border-style: dashed; border-color: var(--line); }
+  .ladder div.probing {
+    border-color: #d9a021;
+    background: rgba(217,160,33,.14);
+  }
+  #log {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    max-height: 220px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+    white-space: pre-wrap;
+  }
+  #log .up { color: #79c0ff; }
+  #log .down { color: #ffa198; }
+  .field { display: grid; gap: 4px; margin: 6px 0; }
+  .field label { font-size: 11px; color: var(--muted); }
+  .field input, .field select {
+    font: inherit;
+    background: #0d1117;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 6px 8px;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 11px; }
+  .dot {
+    display: inline-block;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; margin-right: 5px;
+  }
+  #viewers { display: grid; gap: 4px; font-size: 11.5px; }
+  #viewers div {
+    display: flex; justify-content: space-between;
+    border: 1px solid var(--line); border-radius: 5px;
+    padding: 4px 8px; font-family: "DejaVu Sans Mono", monospace;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>演示者 · 屏幕共享</h1>
+  <span class="conn" id="ws-state">信令：未连接</span>
+  <span class="conn" id="cap-state">采集：未开始</span>
+  <span class="spacer"></span>
+  <button id="share" class="primary">开始共享</button>
+  <button id="switch" disabled>切换共享源</button>
+  <button id="stop" class="danger" disabled>结束共享</button>
+</header>
+
+<section id="stage" class="empty">
+  <video id="preview" autoplay muted playsinline></video>
+  <div id="stage-placeholder">
+    <div>
+      <div style="font-size:15px;color:#c9d5e1;margin-bottom:6px">尚未开始共享</div>
+      <div>点击“开始共享”，在浏览器弹窗中选择要演示的窗口或整屏。<br>
+      建议共享运行 fixture.html 的窗口，便于查看细字、平滑滚动与动态图表。</div>
+    </div>
+  </div>
+  <div id="state-overlay"></div>
+</section>
+
+<aside>
+  <div class="field">
+    <label>房间号</label>
+    <input id="room" value="DEMO" maxlength="32">
+  </div>
+  <div class="field">
+    <label>显示名称</label>
+    <input id="name" value="演示者" maxlength="60">
+  </div>
+  <div class="row">
+    <button id="join">加入房间</button>
+    <button id="copy-viewer">复制观看链接</button>
+  </div>
+  <div id="join-msg" class="banner muted">未加入房间。</div>
+
+  <h2>直播状态</h2>
+  <div id="state-banner" class="banner muted">状态：idle</div>
+  <div class="kv" id="cap-kv"></div>
+
+  <h2>自适应清晰度</h2>
+  <div id="adaptive-banner" class="banner muted">等待链路数据…</div>
+  <div class="ladder" id="ladder"></div>
+  <div class="hint" id="floor-hint"></div>
+
+  <h2>发送统计（每秒刷新）</h2>
+  <div class="kv" id="stats-kv"></div>
+  <div class="row" style="margin-top:6px">
+    <button id="force-down">手动降一档</button>
+    <button id="force-up">手动升一档</button>
+    <button id="reset-adapt">重置自适应</button>
+  </div>
+
+  <h2>观看者</h2>
+  <div id="viewers"><span class="hint">暂无</span></div>
+
+  <h2>事件日志</h2>
+  <div id="log"></div>
+</aside>
+
+<script type="module">
+import { AdaptiveController, LADDER } from './shared/adaptive.js';
+import {
+  SignalClient, createPeerConnection, selectedPair, trackSettingsSummary,
+} from './shared/rtc.js';
+
+// ?ice=relay forces every media packet through the TURN relay. The weak-network
+// experiments use this so the shaper on the relay is the only path.
+const ICE_MODE = new URLSearchParams(location.search).get('ice') === 'relay' ? 'relay' : 'all';
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const roomInput = $('room');
+const nameInput = $('name');
+roomInput.value = params.get('room') || 'DEMO';
+nameInput.value = params.get('name') || '演示者';
+
+const ui = {
+  wsState: $('ws-state'),
+  capState: $('cap-state'),
+  share: $('share'),
+  switch: $('switch'),
+  stop: $('stop'),
+  join: $('join'),
+  copyViewer: $('copy-viewer'),
+  joinMsg: $('join-msg'),
+  stateBanner: $('state-banner'),
+  capKv: $('cap-kv'),
+  adaptiveBanner: $('adaptive-banner'),
+  ladder: $('ladder'),
+  floorHint: $('floor-hint'),
+  statsKv: $('stats-kv'),
+  viewers: $('viewers'),
+  log: $('log'),
+  preview: $('preview'),
+  stage: $('stage'),
+  overlay: $('state-overlay'),
+};
+
+let signal = null;
+let iceServers = [];
+let selfId = null;
+let room = roomInput.value;
+let stream = null;
+let track = null;
+/** @type {Map<string, {pc: RTCPeerConnection, sender: RTCRtpSender, name: string}>} */
+const viewers = new Map();
+
+const S = {
+  IDLE: 'idle',
+  REQUESTING: 'requesting-permission',
+  DENIED: 'permission-denied',
+  CAPTURE_FAILED: 'capture-failed',
+  READY: 'ready',
+  LIVE: 'live',
+  MUTED: 'source-muted',
+  SWITCHING: 'switching-source',
+  ENDED: 'ended',
+  ERROR: 'error',
+  DISCONNECTED: 'signaling-disconnected',
+};
+
+let presenterState = S.IDLE;
+let stateDetail = '';
+let lastEndReason = null;
+
+function log(kind, text) {
+  const line = document.createElement('div');
+  line.className = kind;
+  const t = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  line.textContent = `[${t}] ${text}`;
+  ui.log.prepend(line);
+  while (ui.log.childElementCount > 160) ui.log.lastElementChild.remove();
+}
+
+function renderState() {
+  const map = {
+    [S.IDLE]: ['muted', '状态：idle（未开始）'],
+    [S.REQUESTING]: ['warn', '状态：正在等待屏幕权限…'],
+    [S.DENIED]: ['bad', '状态：屏幕权限被拒绝 —— 未采集，观看者不会看到任何画面'],
+    [S.CAPTURE_FAILED]: ['bad', '状态：无法开始采集（来源不可读）'],
+    [S.READY]: ['ok', '状态：已采集，等待观看者'],
+    [S.LIVE]: ['ok', '状态：直播中'],
+    [S.MUTED]: ['warn', '状态：采集源暂时无信号（可能被最小化/切换）'],
+    [S.SWITCHING]: ['warn', '状态：正在切换共享源…'],
+    [S.ENDED]: ['bad', `状态：共享已结束${lastEndReason ? `（${lastEndReason}）` : ''}`],
+    [S.ERROR]: ['bad', `状态：错误 ${stateDetail}`],
+    [S.DISCONNECTED]: ['warn', '状态：信令断开，观看者将收到结束提示'],
+  };
+  const [cls, text] = map[presenterState] || ['muted', `状态：${presenterState}`];
+  ui.stateBanner.className = `banner ${cls}`;
+  ui.stateBanner.textContent = text;
+
+  ui.capState.textContent =
+    presenterState === S.LIVE
+      ? '采集：直播中'
+      : presenterState === S.READY
+      ? '采集：已就绪'
+      : presenterState === S.ENDED
+      ? '采集：已结束'
+      : presenterState === S.DENIED
+      ? '采集：已拒绝'
+      : '采集：未开始';
+  ui.capState.className = `conn ${
+    presenterState === S.LIVE
+      ? 'live'
+      : [S.DENIED, S.ENDED, S.CAPTURE_FAILED, S.ERROR].includes(presenterState)
+      ? 'bad'
+      : [S.MUTED, S.REQUESTING, S.SWITCHING].includes(presenterState)
+      ? 'warn'
+      : ''
+  }`;
+
+  const live = presenterState === S.LIVE;
+  ui.overlay.classList.toggle('show', !live && presenterState !== S.READY && presenterState !== S.IDLE);
+  if (ui.overlay.classList.contains('show')) {
+    ui.overlay.innerHTML = `<b>${esc(text)}</b><div class="hint" style="margin-top:4px">${esc(
+      overlayHint(),
+    )}</div>`;
+  }
+  ui.stage.classList.toggle('empty', !stream);
+  ui.share.disabled = [S.REQUESTING, S.SWITCHING, S.LIVE, S.READY, S.MUTED].includes(presenterState);
+  ui.switch.disabled = ![S.READY, S.LIVE, S.MUTED].includes(presenterState);
+  ui.stop.disabled = ![S.READY, S.LIVE, S.MUTED].includes(presenterState);
+}
+
+function overlayHint() {
+  if (presenterState === S.DENIED)
+    return '浏览器不会给出“正在直播”的假象：本地预览保持空白，观看端显示“无信号”。点击“开始共享”可再次授权。';
+  if (presenterState === S.ENDED)
+    return '共享轨道已停止。观看端会清空最后一帧并显示“直播已结束”，不会把旧画面当成实时画面。';
+  if (presenterState === S.MUTED)
+    return '轨道被浏览器置为静音（临时无信号）。观看端会看到“画面暂停更新”提示。';
+  if (presenterState === S.DISCONNECTED)
+    return '与信令服务器的连接已断开，观看端会视为直播结束。恢复网络后请重新加入房间。';
+  return '';
+}
+
+const esc = (s) =>
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function setState(next, detail = '') {
+  if (presenterState === next && detail === stateDetail) return;
+  presenterState = next;
+  stateDetail = detail;
+  renderState();
+  log(next === S.LIVE ? 'up' : 'down', `state → ${next}${detail ? ` (${detail})` : ''}`);
+  sendState();
+}
+
+function sendState() {
+  if (!signal) return;
+  signal.send({
+    t: 'state',
+    state: presenterState,
+    reason: lastEndReason,
+    detail: stateDetail,
+    capture: track ? trackSettingsSummary(track) : null,
+    adaptive: controller.snapshot(),
+  });
+}
+
+// ---------------- adaptive controller wiring ----------------
+const controller = new AdaptiveController({
+  startIndex: Number(params.get('startLadder') || 2),
+  onApply: (patch) => applyEncodingPatch(patch),
+  onNotice: (n) => {
+    log(n.level === 'upgrade' ? 'up' : 'down', `[自适应] ${n.message}`);
+    renderAdaptive();
+    sendState();
+  },
+  onMetrics: (rec) => {
+    log(rec.direction === 'upgrade' ? 'up' : 'down',
+      `[自适应] ${rec.from} → ${rec.to}，估计 ${rec.estimateKbps} kbps，阈值 ${rec.thresholdKbps} kbps`);
+    renderLadder();
+    sendState();
+  },
+});
+
+let captureMax = { width: 1920, height: 1080 };
+let outboundStream = null;
+
+async function applyEncodingPatch(patch) {
+  const enc = {};
+  if (patch.width && patch.height) {
+    // Scale from the *actual* capture size each time. A cached size goes stale
+    // when the presenter switches sources or the browser changes capture
+    // dimensions, which would compound the scale factor and drop the stream
+    // below the declared minimum.
+    const actual = track?.getSettings() ?? {};
+    const srcH = actual.height || captureMax.height;
+    const srcW = actual.width || captureMax.width;
+    let scale = Math.max(1, srcH / patch.height);
+    // Never encode smaller than the floor: 640x360 for a 16:9 desktop share.
+    const minH = LADDER[controller.floorIndex].height;
+    const minW = LADDER[controller.floorIndex].width;
+    scale = Math.min(scale, Math.max(1, srcH / minH), Math.max(1, srcW / minW));
+    enc.scaleResolutionDownBy = Number(scale.toFixed(3));
+  }
+  if (patch.maxBitrateKbps) enc.maxBitrate = patch.maxBitrateKbps * 1000;
+  if (patch.frameRate) enc.maxFramerate = patch.frameRate;
+
+  for (const { sender } of viewers.values()) {
+    try {
+      if (!sender.__negotiated) continue;
+      const p = sender.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      Object.assign(p.encodings[0], enc);
+      if (patch.maxBitrateKbps) {
+        p.encodings[0].maxBitrate = patch.maxBitrateKbps * 1000;
+      }
+      p.degradationPreference = 'maintain-resolution';
+      await sender.setParameters(p);
+    } catch (err) {
+      log('down', `setParameters 失败：${err.name}: ${err.message}`);
+    }
+  }
+
+  if (track && patch.frameRate) {
+    try {
+      await track.applyConstraints({
+        frameRate: { ideal: patch.frameRate, max: patch.frameRate },
+      });
+    } catch {
+      /* frameRate is also enforced by sender.maxFramerate */
+    }
+  }
+
+  renderAdaptive();
+  renderLadder();
+}
+
+// ---------------- motion estimation ----------------
+// Enough horizontal detail that a slow scroll (a few px per sample) still moves
+// text edges across cells. At 80px wide a 4px scroll becomes sub-pixel and the
+// motion detector reports the document as static.
+const motionCanvas = document.createElement('canvas');
+motionCanvas.width = 320;
+motionCanvas.height = 180;
+const motionCtx = motionCanvas.getContext('2d', { willReadFrequently: true });
+// Compare against a frame from ~750ms ago rather than the immediately previous
+// sample. A slow, smooth scroll moves text by well under a pixel between 100ms
+// samples once downscaled, so an adjacent-frame diff calls it static; over
+// 750ms the displacement is large enough to register as motion.
+const MOTION_REF_MS = 750;
+let motionRef = null; // { luma, at }
+let motionTimer = null;
+
+function startMotionLoop() {
+  stopMotionLoop();
+  motionTimer = setInterval(() => {
+    if (!track || track.readyState !== 'live') return;
+    const v = ui.preview;
+    if (!v.videoWidth) return;
+    try {
+      motionCtx.drawImage(v, 0, 0, motionCanvas.width, motionCanvas.height);
+      const { data } = motionCtx.getImageData(
+        0,
+        0,
+        motionCanvas.width,
+        motionCanvas.height,
+      );
+      const n = motionCanvas.width * motionCanvas.height;
+      const luma = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const p = i * 4;
+        luma[i] = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
+      }
+      const now = performance.now();
+      const prevLuma = motionRef?.luma;
+      if (prevLuma && now - motionRef.at >= MOTION_REF_MS) {
+        controller.noteMotion(movingCellFraction(luma, prevLuma));
+        motionRef = { luma, at: now };
+      } else if (!motionRef) {
+        motionRef = { luma, at: now };
+      }
+    } catch {
+      /* preview not drawable yet */
+    }
+  }, 100);
+}
+
+// Fraction of a 16x9 grid of capture cells whose pixels changed meaningfully
+// against the reference frame. A static document changes a few cells (clock,
+// cursor, calibration strip); a scroll or a running chart changes most of them.
+// Reporting an area fraction rather than a mean delta is what separates the two.
+function movingCellFraction(luma, prevLuma) {
+  const cols = 16;
+  const rows = 9;
+  const cellW = Math.max(1, Math.floor(motionCanvas.width / cols));
+  const cellH = Math.max(1, Math.floor(motionCanvas.height / rows));
+  const cell = new Float32Array(cols * rows);
+  const count = new Float32Array(cols * rows);
+  for (let y = 0; y < motionCanvas.height; y++) {
+    const cy = Math.min(rows - 1, Math.floor(y / cellH));
+    for (let x = 0; x < motionCanvas.width; x++) {
+      const i = y * motionCanvas.width + x;
+      const ci = cy * cols + Math.min(cols - 1, Math.floor(x / cellW));
+      cell[ci] += Math.abs(luma[i] - prevLuma[i]);
+      count[ci]++;
+    }
+  }
+  let moving = 0;
+  let cells = 0;
+  for (let i = 0; i < cell.length; i++) {
+    if (!count[i]) continue;
+    cells++;
+    if (cell[i] / count[i] / 255 > 0.010) moving++;
+  }
+  return cells ? moving / cells : 0;
+}
+
+function stopMotionLoop() {
+  if (motionTimer) clearInterval(motionTimer);
+  motionTimer = null;
+  motionRef = null;
+}
+
+// ---------------- sender stats ----------------
+let lastStats = null;
+let statsTimer = null;
+
+function startStatsLoop() {
+  stopStatsLoop();
+  statsTimer = setInterval(() => pollStats(), 1000);
+}
+
+function stopStatsLoop() {
+  if (statsTimer) clearInterval(statsTimer);
+  statsTimer = null;
+  lastStats = null;
+}
+
+async function pollStats() {
+  const first = viewers.values().next().value;
+  if (!first) return;
+  const pc = first.pc;
+  let stats;
+  try {
+    stats = await pc.getStats();
+  } catch {
+    return;
+  }
+
+  let out = null;
+  let pair = null;
+  let remoteInbound = null;
+  stats.forEach((s) => {
+    if (s.type === 'outbound-rtp' && s.kind === 'video') out = s;
+    if (
+      s.type === 'candidate-pair' &&
+      s.state === 'succeeded' &&
+      (s.selected || s.nominated)
+    )
+      pair = s;
+    if (s.type === 'remote-inbound-rtp' && s.kind === 'video') remoteInbound = s;
+  });
+
+  const now = performance.now();
+  const prev = lastStats;
+  const dt = prev ? Math.max(0.2, (now - prev.at) / 1000) : 0;
+  const delta = (key) => {
+    if (!out || !prev || !prev.out) return 0;
+    const a = out[key] ?? 0;
+    const b = prev.out[key] ?? 0;
+    return Math.max(0, a - b);
+  };
+
+  const bytes = out?.bytesSent ?? 0;
+  const kbps = prev && prev.bytesSent != null ? ((bytes - prev.bytesSent) * 8) / dt / 1000 : 0;
+  const framesEncoded = delta('framesEncoded');
+  const framesSent = delta('framesSent');
+  const packetsSent = delta('packetsSent');
+  const retrans = delta('retransmittedPacketsSent');
+  const encodeFps = dt ? framesEncoded / dt : 0;
+
+  // Loss is measured from the receiver's RTCP feedback, not inferred from how
+  // many packets we chose to retransmit. On a local relay a healthy link still
+  // produces plenty of RTX (late NACKs, scheduler artefacts), so using the
+  // retransmit share as a congestion signal would permanently pin the ladder.
+  let lossRate = 0;
+  if (remoteInbound) {
+    if (Number.isFinite(remoteInbound.fractionLost)) {
+      lossRate = Math.max(0, Math.min(1, remoteInbound.fractionLost));
+    } else if (prev?.remoteInbound) {
+      const lost = (remoteInbound.packetsLost ?? 0) - (prev.remoteInbound.packetsLost ?? 0);
+      const recv = (remoteInbound.packetsReceived ?? 0) - (prev.remoteInbound.packetsReceived ?? 0);
+      const total = Math.max(0, lost) + Math.max(0, recv);
+      if (total > 20) lossRate = Math.max(0, lost) / total;
+    }
+  }
+  const queueMs =
+    packetsSent > 0 && out
+      ? ((out.totalPacketSendDelay ?? 0) -
+          (prev?.out?.totalPacketSendDelay ?? 0)) /
+        packetsSent *
+        1000
+      : 0;
+
+  // Prefer the transport-wide congestion-control estimate. `targetBitrate` is
+  // an output of the encoder/BWE loop, so feeding it back in would make the
+  // controller chase its own tail.
+  const estimateKbps =
+    (pair?.availableOutgoingBitrate ? pair.availableOutgoingBitrate / 1000 : 0) ||
+    (out?.targetBitrate ? out.targetBitrate / 1000 : 0);
+
+  controller.noteSenderStats({
+    availableOutgoingBitrateKbps: estimateKbps,
+    rttMs: pair?.currentRoundTripTime != null ? pair.currentRoundTripTime * 1000 : 0,
+    encodeQueueMs: queueMs,
+    encodeFps,
+    dropRate: framesEncoded > 0 ? Math.max(0, (framesEncoded - framesSent) / framesEncoded) : 0,
+    retransmitRatio: packetsSent > 0 ? retrans / packetsSent : 0,
+    lossRate,
+    qualityLimitation: out?.qualityLimitationReason ?? null,
+    bytesSentKbps: kbps,
+  });
+
+  const encodedW = out?.frameWidth ?? null;
+  const encodedH = out?.frameHeight ?? null;
+
+  const sample = {
+    sentFrames: out?.framesSent ?? 0,
+    encodedFrames: out?.framesEncoded ?? 0,
+    sentFramesDelta: framesSent,
+    encodeFps: Number(encodeFps.toFixed(1)),
+    encodedWidth: encodedW,
+    encodedHeight: encodedH,
+    targetBitrateKbps: Math.round(out?.targetBitrate ? out.targetBitrate / 1000 : 0),
+    availableKbps: Math.round(pair?.availableOutgoingBitrate ? pair.availableOutgoingBitrate / 1000 : 0),
+    bytesSentKbps: Math.round(kbps),
+    queueDelayMs: Number(queueMs.toFixed(1)),
+    rttMs: Math.round(pair?.currentRoundTripTime != null ? pair.currentRoundTripTime * 1000 : 0),
+    retransmitRatio: Number((packetsSent ? retrans / packetsSent : 0).toFixed(4)),
+    lossRate: Number(lossRate.toFixed(4)),
+    packetsLostFeedback: remoteInbound?.packetsLost ?? null,
+    qualityLimitation: out?.qualityLimitationReason ?? null,
+    dscp: out?.dscp ?? null,
+    captureWidth: track?.getSettings().width ?? null,
+    captureHeight: track?.getSettings().height ?? null,
+    captureFrameRate: track?.getSettings().frameRate ?? null,
+    ladder: controller.snapshot(),
+    at: Date.now(),
+  };
+
+  lastStats = {
+    at: now,
+    out: out ? { ...out } : null,
+    bytesSent: bytes,
+    remoteInbound: remoteInbound ? { ...remoteInbound } : null,
+  };
+
+  renderStats(sample);
+  if (signal) signal.send({ t: 'stats', sample });
+  window.__presenterLastSample = sample;
+}
+
+// ---------------- rendering ----------------
+function renderStats(s) {
+  const rows = [
+    ['实际发送帧/秒', s.encodeFps],
+    ['编码尺寸', s.encodedWidth && s.encodedHeight ? `${s.encodedWidth}x${s.encodedHeight}` : '—'],
+    ['采集尺寸', s.captureWidth ? `${s.captureWidth}x${s.captureHeight}` : '—'],
+    ['发送码率', `${s.bytesSentKbps} kbps`],
+    ['BWE 目标', `${s.targetBitrateKbps} kbps`],
+    ['发送队列延迟', `${s.queueDelayMs} ms`],
+    ['RTT', `${s.rttMs} ms`],
+    ['重传比例', `${(s.retransmitRatio * 100).toFixed(1)}%`],
+    ['质量受限原因', s.qualityLimitation ?? '—'],
+    ['累计发送帧', s.sentFrames],
+    ['目标帧率', `${s.ladder.targetFps} fps`],
+  ];
+  ui.statsKv.innerHTML = rows
+    .map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`)
+    .join('');
+}
+
+function renderAdaptive() {
+  const snap = controller.snapshot();
+  const est = snap.estimateKbps;
+  let cls = 'muted';
+  let text = `估计带宽 ${est || '—'} kbps · 当前 ${snap.resolution} · 目标 ${snap.targetFps} fps`;
+  if (snap.ladderIndex >= controller.floorIndex) {
+    cls = 'warn';
+    text += ' · 已到最低档';
+  }
+  if (snap.probing) {
+    cls = 'warn';
+    text += ` · 试探升档至 ${snap.probeTarget}`;
+  }
+  if (snap.qualityLimitation === 'bandwidth') {
+    cls = 'bad';
+    text += ' · 带宽受限';
+  }
+  if (presenterState === S.LIVE && est > 0 && snap.ladderIndex === 0) {
+    text += ' · 最高档';
+  }
+  ui.adaptiveBanner.className = `banner ${cls}`;
+  ui.adaptiveBanner.textContent = text;
+  ui.floorHint.textContent = `最低可用清晰度：${snap.floorResolution}（文字仍应可辨；再低不再自动降档）`;
+}
+
+function renderLadder() {
+  const snap = controller.snapshot();
+  ui.ladder.innerHTML = LADDER.map((r, i) => {
+    const active = i === controller.ladderIndex;
+    const floor = i === controller.floorIndex;
+    // While probing, the rung being exercised is the target, not the current
+    // one: apply() raised the ceiling to the target but ladderIndex has not
+    // moved yet.
+    const probingHere = snap.probing && r.label === snap.probeTarget;
+    return `<div class="${active ? 'active' : ''} ${floor ? 'floor' : ''} ${probingHere ? 'probing' : ''}">
+      <span>${r.label}</span><span>≤ ${r.maxKbps} kbps</span>
+      <span>${floor ? '最低' : probingHere ? '试探中' : active ? '当前' : ''}</span></div>`;
+  }).join('');
+}
+
+function renderViewers() {
+  if (!viewers.size) {
+    ui.viewers.innerHTML = '<span class="hint">暂无</span>';
+    return;
+  }
+  ui.viewers.innerHTML = [...viewers.entries()]
+    .map(([id, v]) => `<div><span>${esc(v.name || id.slice(0, 8))}</span><span>${
+      v.pc.connectionState
+    }</span></div>`)
+    .join('');
+}
+
+// ---------------- signaling ----------------
+async function join() {
+  if (signal) return;
+  room = roomInput.value.trim() || 'DEMO';
+  const name = nameInput.value.trim() || '演示者';
+  ui.join.disabled = true;
+  ui.joinMsg.className = 'banner muted';
+  ui.joinMsg.textContent = '正在连接信令…';
+  signal = new SignalClient({
+    role: 'presenter',
+    room,
+    name,
+    onOpen: () => {
+      ui.wsState.textContent = '信令：已连接';
+      ui.wsState.className = 'conn live';
+      ui.joinMsg.className = 'banner ok';
+      ui.joinMsg.textContent = `已加入房间 ${room}，等待观看者。`;
+      ui.join.textContent = '已加入';
+      log('up', `加入房间 ${room}`);
+    },
+    onClose: ({ byUser }) => {
+      ui.wsState.textContent = '信令：已断开';
+      ui.wsState.className = 'conn bad';
+      if (!byUser) setState(S.DISCONNECTED, 'socket closed');
+      for (const { pc } of viewers.values()) pc.close();
+      viewers.clear();
+      renderViewers();
+      signal = null;
+      ui.join.disabled = false;
+      ui.join.textContent = '重新加入';
+    },
+    onMessage: (msg) => handleSignal(msg),
+  });
+  try {
+    await signal.connect();
+  } catch (err) {
+    ui.join.disabled = false;
+    ui.joinMsg.className = 'banner bad';
+    ui.joinMsg.textContent = `连接失败：${err.message}`;
+  }
+}
+
+async function handleSignal(msg) {
+  switch (msg.t) {
+    case 'welcome':
+      selfId = msg.selfId;
+      iceServers = msg.iceServers || [];
+      log('up', `welcome self=${selfId.slice(0, 8)} ice=${JSON.stringify(iceServers)}`);
+      sendState();
+      return;
+    case 'error':
+      log('down', `信令错误 ${msg.code}: ${msg.message}`);
+      ui.joinMsg.className = 'banner bad';
+      ui.joinMsg.textContent = msg.message;
+      return;
+    case 'viewer-request':
+      log('up', `观看者请求：${msg.viewerName}`);
+      await offerToViewer(msg.viewerId, msg.viewerName);
+      return;
+    case 'signal':
+      await onSignalFromPeer(msg.from, msg.payload);
+      return;
+    case 'peer-leave':
+      if (viewers.has(msg.peerId)) {
+        viewers.get(msg.peerId).pc.close();
+        viewers.delete(msg.peerId);
+        renderViewers();
+        if (!viewers.size && presenterState === S.LIVE) setState(S.READY, 'no viewers');
+      }
+      return;
+    case 'state':
+      return;
+    default:
+      return;
+  }
+}
+
+function viewerEntry(id) {
+  let v = viewers.get(id);
+  if (v) return v;
+  const pc = createPeerConnection(iceServers, {
+    iceTransportPolicy: ICE_MODE,
+    onLocalCandidate: (c) =>
+      signal?.send({ t: 'signal', to: id, payload: { candidate: c } }),
+    onConnectionState: (state) => {
+      log(state === 'connected' ? 'up' : 'down', `viewer ${id.slice(0, 8)} pc=${state}`);
+      renderViewers();
+      if (state === 'connected' && presenterState === S.READY) setState(S.LIVE, 'viewer connected');
+      if (['failed', 'closed'].includes(state) && viewers.has(id)) {
+        viewers.get(id).pc.close();
+        viewers.delete(id);
+        renderViewers();
+        if (!viewers.size && presenterState === S.LIVE) setState(S.READY, 'viewer left');
+      }
+    },
+  });
+  // Bind an explicit local MediaStream so the receiving side gets a stream id
+  // in SDP and can attach it to a <video> element without guessing.
+  if (!outboundStream) outboundStream = new MediaStream();
+  const transceiver = pc.addTransceiver('video', {
+    direction: 'sendonly',
+    streams: [outboundStream],
+  });
+  const sender = transceiver.sender;
+  v = { pc, sender, name: '' };
+  viewers.set(id, v);
+  renderViewers();
+  return v;
+}
+
+async function offerToViewer(viewerId, viewerName) {
+  const v = viewerEntry(viewerId);
+  v.name = viewerName || '';
+  renderViewers();
+  // Viewers may re-request while the first negotiation is still in flight. A
+  // second offer on the same peer connection would race the answer, so answer
+  // the re-request with the existing session instead.
+  if (v.offering) return;
+  if (v.sender.__negotiated && v.pc.localDescription) {
+    signal.send({
+      t: 'signal',
+      to: viewerId,
+      payload: { description: v.pc.localDescription },
+    });
+    return;
+  }
+  v.offering = true;
+  if (track) {
+    try {
+      await v.sender.replaceTrack(track);
+      v.sender.__negotiated = true;
+      await applyEncodingPatch({
+        width: LADDER[controller.ladderIndex].width,
+        height: LADDER[controller.ladderIndex].height,
+        maxBitrateKbps: LADDER[controller.ladderIndex].maxKbps,
+        frameRate: controller.targetFps,
+      });
+    } catch (err) {
+      log('down', `replaceTrack 失败：${err.message}`);
+    }
+  }
+  const offer = await v.pc.createOffer();
+  await v.pc.setLocalDescription(offer);
+  v.sender.__negotiated = true;
+  v.offering = false;
+  signal.send({
+    t: 'signal',
+    to: viewerId,
+    payload: { description: v.pc.localDescription },
+  });
+}
+
+async function onSignalFromPeer(from, payload) {
+  const v = viewerEntry(from);
+  if (payload.description) {
+    if (payload.description.type === 'answer') {
+      await v.pc.setRemoteDescription(payload.description);
+    } else if (payload.description.type === 'offer') {
+      await v.pc.setRemoteDescription(payload.description);
+      const answer = await v.pc.createAnswer();
+      await v.pc.setLocalDescription(answer);
+      signal.send({ t: 'signal', to: from, payload: { description: v.pc.localDescription } });
+    }
+  } else if (payload.candidate) {
+    try {
+      await v.pc.addIceCandidate(payload.candidate);
+    } catch {
+      /* candidate can arrive after close */
+    }
+  }
+}
+
+function syncOutboundStream() {
+  if (!outboundStream) outboundStream = new MediaStream();
+  for (const t of outboundStream.getTracks()) outboundStream.removeTrack(t);
+  if (track) outboundStream.addTrack(track);
+}
+
+// ---------------- capture lifecycle ----------------
+function captureConstraints() {
+  return {
+    video: {
+      frameRate: { ideal: 30, max: 60 },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      cursor: 'motion',
+    },
+    audio: false,
+    selfBrowserSurface: 'exclude',
+    surfaceSwitching: 'include',
+    systemAudio: 'exclude',
+  };
+}
+
+async function startShare() {
+  if (stream) return;
+  lastEndReason = null;
+  setState(S.REQUESTING);
+  let next;
+  try {
+    next = await navigator.mediaDevices.getDisplayMedia(captureConstraints());
+  } catch (err) {
+    if (err.name === 'NotAllowedError') {
+      setState(S.DENIED, err.message || 'NotAllowedError');
+    } else {
+      setState(S.CAPTURE_FAILED, `${err.name}: ${err.message}`);
+    }
+    return;
+  }
+
+  const t = next.getVideoTracks()[0];
+  if (!t) {
+    next.getTracks().forEach((x) => x.stop());
+    setState(S.CAPTURE_FAILED, 'no video track');
+    return;
+  }
+
+  stream = next;
+  track = t;
+  attachTrackEvents(t);
+  syncOutboundStream();
+
+  ui.preview.srcObject = next;
+  try {
+    await ui.preview.play();
+  } catch {
+    /* autoplay muted */
+  }
+
+  const settings = t.getSettings();
+  captureMax = {
+    width: settings.width || 1920,
+    height: settings.height || 1080,
+  };
+  log('up', `采集源：${settings.displaySurface || '?'} ${captureMax.width}x${captureMax.height}@${settings.frameRate ?? '?'}fps`);
+
+  // Warm-up and hysteresis clocks are relative to the start of this share.
+  controller.reset();
+  controller.noteCaptureSize(captureMax.width, captureMax.height);
+  startMotionLoop();
+  startStatsLoop();
+  renderState();
+
+  setState(viewers.size ? S.LIVE : S.READY, 'capture started');
+
+  for (const v of viewers.values()) {
+    try {
+      await v.sender.replaceTrack(track);
+    } catch (err) {
+      log('down', `replaceTrack 失败：${err.message}`);
+    }
+  }
+  await applyEncodingPatch({
+    width: LADDER[controller.ladderIndex].width,
+    height: LADDER[controller.ladderIndex].height,
+    maxBitrateKbps: LADDER[controller.ladderIndex].maxKbps,
+    frameRate: controller.targetFps,
+  });
+  renderLadder();
+  renderAdaptive();
+}
+
+function attachTrackEvents(t) {
+  t.addEventListener('ended', () => {
+    log('down', '屏幕轨道 ended（用户停止共享 / 来源关闭 / 权限撤销）');
+    onTrackGone('track-ended');
+  });
+  t.addEventListener('mute', () => {
+    log('down', '屏幕轨道 mute（来源暂时不可用）');
+    if (presenterState === S.LIVE || presenterState === S.READY) setState(S.MUTED, 'track muted');
+  });
+  t.addEventListener('unmute', () => {
+    log('up', '屏幕轨道 unmute（来源恢复）');
+    if (presenterState === S.MUTED) setState(viewers.size ? S.LIVE : S.READY, 'track unmuted');
+  });
+}
+
+function onTrackGone(reason) {
+  lastEndReason = reason;
+  stopMotionLoop();
+  stopStatsLoop();
+  if (track) {
+    track.onended = null;
+    try { track.stop(); } catch {}
+  }
+  track = null;
+  if (stream) {
+    stream.getTracks().forEach((x) => {
+      try { x.stop(); } catch {}
+    });
+  }
+  stream = null;
+  ui.preview.srcObject = null;
+  for (const v of viewers.values()) {
+    try { v.sender.replaceTrack(null); } catch {}
+    v.pc.close();
+  }
+  viewers.clear();
+  renderViewers();
+  setState(S.ENDED, reason);
+}
+
+function stopShare() {
+  if (!track && !stream) return;
+  log('down', '手动结束共享');
+  onTrackGone('user-stopped');
+}
+
+async function switchSource() {
+  if (!track) return;
+  const before = trackSettingsSummary(track);
+  setState(S.SWITCHING, 'requesting new source');
+  let next;
+  try {
+    next = await navigator.mediaDevices.getDisplayMedia(captureConstraints());
+  } catch (err) {
+    log('down', `切换取消：${err.name}: ${err.message}`);
+    setState(viewers.size ? S.LIVE : S.READY, 'switch cancelled');
+    return;
+  }
+  const t = next.getVideoTracks()[0];
+  if (!t) {
+    next.getTracks().forEach((x) => x.stop());
+    setState(viewers.size ? S.LIVE : S.READY, 'switch failed');
+    return;
+  }
+  const after = trackSettingsSummary(t);
+  const changed =
+    before &&
+    (before.deviceId !== after.deviceId || before.displaySurface !== after.displaySurface);
+
+  const old = stream;
+  const oldTrack = track;
+  stream = next;
+  track = t;
+  attachTrackEvents(t);
+  syncOutboundStream();
+  ui.preview.srcObject = next;
+  try { await ui.preview.play(); } catch {}
+
+  const settings = t.getSettings();
+  captureMax = { width: settings.width || 1920, height: settings.height || 1080 };
+  for (const v of viewers.values()) {
+    try { await v.sender.replaceTrack(t); } catch (err) { log('down', `replaceTrack: ${err.message}`); }
+  }
+  oldTrack?.removeEventListener?.('ended', () => {});
+  try { oldTrack?.stop(); } catch {}
+  old?.getTracks().forEach((x) => { try { x.stop(); } catch {} });
+
+  startMotionLoop();
+  startStatsLoop();
+  controller.noteCaptureSize(captureMax.width, captureMax.height);
+  await applyEncodingPatch({
+    width: LADDER[controller.ladderIndex].width,
+    height: LADDER[controller.ladderIndex].height,
+    maxBitrateKbps: LADDER[controller.ladderIndex].maxKbps,
+    frameRate: controller.targetFps,
+  });
+
+  log('up', `共享源切换：${before?.deviceId} → ${after?.deviceId} (${after?.displaySurface}) changed=${changed}`);
+  setState(viewers.size ? S.LIVE : S.READY, changed ? 'source-changed' : 'source-same');
+}
+
+// ---------------- UI wiring ----------------
+ui.join.addEventListener('click', join);
+ui.share.addEventListener('click', startShare);
+ui.stop.addEventListener('click', stopShare);
+ui.switch.addEventListener('click', switchSource);
+ui.copyViewer.addEventListener('click', async () => {
+  const url = `${location.origin}/viewer.html?room=${encodeURIComponent(room)}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    ui.joinMsg.className = 'banner ok';
+    ui.joinMsg.textContent = `已复制：${url}`;
+  } catch {
+    ui.joinMsg.className = 'banner muted';
+    ui.joinMsg.textContent = url;
+  }
+});
+
+$('force-down').addEventListener('click', () => {
+  controller.lastDowngradeAt = 0;
+  controller.commitLadder(
+    Math.min(controller.floorIndex, controller.ladderIndex + 1),
+    'downgrade',
+    performance.now(),
+    { manual: true },
+  );
+});
+$('force-up').addEventListener('click', () => {
+  controller.lastUpgradeAt = 0;
+  controller.lastDowngradeAt = 0;
+  // Clamp to what the capture can actually fill, not the absolute top rung:
+  // asking for 1080p from a 720p source produces an upscaled, softer image
+  // and a bitrate ceiling the encoder cannot use.
+  controller.commitLadder(
+    Math.max(controller.effectiveMaxIndex, controller.ladderIndex - 1),
+    'upgrade',
+    performance.now(),
+    { manual: true },
+  );
+});
+$('reset-adapt').addEventListener('click', () => {
+  controller.lastUpgradeAt = 0;
+  controller.lastDowngradeAt = 0;
+  controller.pendingFloorNotify = false;
+  log('up', '自适应状态已重置（下一轮评估可升档）');
+  sendState();
+});
+
+// test hooks used by the automated experiment harness
+window.__presenter = {
+  join,
+  startShare,
+  stopShare,
+  switchSource,
+  state: () => presenterState,
+  snapshot: () => ({
+    state: presenterState,
+    detail: stateDetail,
+    lastEndReason,
+    room,
+    selfId,
+    viewers: viewers.size,
+    capture: track ? trackSettingsSummary(track) : null,
+    adaptive: controller.snapshot(),
+    lastSample: window.__presenterLastSample ?? null,
+    notices: controller.notices.slice(-20),
+    history: controller.history.slice(-30),
+  }),
+  async captureFull() {
+    if (!ui.preview.videoWidth) return null;
+    const c = document.createElement('canvas');
+    c.width = ui.preview.videoWidth;
+    c.height = ui.preview.videoHeight;
+    c.getContext('2d').drawImage(ui.preview, 0, 0);
+    return c.toDataURL('image/png');
+  },
+  // Scenario hooks for the harness: simulate the browser ending the capture
+  // (the "Stop sharing" bar) and simulate the user denying the permission
+  // picker, without needing a real picker in headless Chrome.
+  simulateTrackEnd() {
+    if (!track) return false;
+    // `track.stop()` does *not* fire `ended` (that event is reserved for the
+    // source going away on its own), so simulate the browser's "Stop sharing"
+    // path by dispatching it explicitly. That is exactly what Chrome does when
+    // the user ends the capture from the sharing bar.
+    const t = track;
+    t.stop();
+    t.dispatchEvent(new Event('ended'));
+    return true;
+  },
+  simulateDenial() {
+    if (stream) return false;
+    const original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getDisplayMedia = () =>
+      Promise.reject(new DOMException('Permission denied by user', 'NotAllowedError'));
+    window.__restoreGetDisplayMedia = () => {
+      navigator.mediaDevices.getDisplayMedia = original;
+    };
+    return true;
+  },
+  restoreGetDisplayMedia() {
+    window.__restoreGetDisplayMedia?.();
+    window.__restoreGetDisplayMedia = null;
+  },
+  // Compact snapshot for the experiment harness.
+  summary() {
+    const snap = controller.snapshot();
+    const s = window.__presenterLastSample;
+    const v = [...viewers.values()][0];
+    return {
+      state: presenterState,
+      detail: stateDetail,
+      lastEndReason,
+      room,
+      viewers: viewers.size,
+      capture: track ? trackSettingsSummary(track) : null,
+      adaptive: {
+        ladderIndex: snap.ladderIndex,
+        resolution: snap.resolution,
+        maxKbps: snap.maxKbps,
+        floorResolution: snap.floorResolution,
+        targetFps: snap.targetFps,
+        motionScore: Number(snap.motionScore.toFixed(5)),
+        estimateKbps: snap.estimateKbps,
+        rawEstimateKbps: snap.rawEstimateKbps,
+        slope: snap.estimateSlopeKbpsPerSec,
+        encodeQueueDelayMs: snap.encodeQueueDelayMs,
+        dropRate: snap.dropRate,
+        retransmitRatio: snap.retransmitRatio,
+        lossRate: snap.lossRate,
+        probing: snap.probing,
+        probeFailures: snap.probeFailures,
+        qualityLimitation: snap.qualityLimitation,
+        historyTail: snap.history.slice(-4),
+        noticesTail: snap.notices.slice(-4),
+      },
+      sender: s
+        ? {
+            encodedWidth: s.encodedWidth,
+            encodedHeight: s.encodedHeight,
+            encodeFps: s.encodeFps,
+            sentFrames: s.sentFrames,
+            sentFramesDelta: s.sentFramesDelta,
+            targetBitrateKbps: s.targetBitrateKbps,
+            availableKbps: s.availableKbps,
+            bytesSentKbps: s.bytesSentKbps,
+            queueDelayMs: s.queueDelayMs,
+            rttMs: s.rttMs,
+            retransmitRatio: s.retransmitRatio,
+            qualityLimitation: s.qualityLimitation,
+            captureWidth: s.captureWidth,
+            captureHeight: s.captureHeight,
+            captureFrameRate: s.captureFrameRate,
+          }
+        : null,
+      pc: v ? { connectionState: v.pc.connectionState, ice: v.pc.iceConnectionState } : null,
+    };
+  },
+  dropSignaling() {
+    // Simulate the signaling socket dying without the user clicking "leave".
+    signal?.ws?.close();
+    return true;
+  },
+  resetAdaptive() {
+    controller.reset();
+    controller.pendingFloorNotify = false;
+    log('up', '自适应已重置');
+    sendState();
+    return true;
+  },
+  forceLadder(index) {
+    controller.lastUpgradeAt = 0;
+    controller.lastDowngradeAt = 0;
+    controller.commitLadder(Number(index), Number(index) < controller.ladderIndex ? 'upgrade' : 'downgrade', performance.now(), { manual: true });
+  },
+  async captureRegion(x, y, w, h) {
+    if (!ui.preview.videoWidth) return null;
+    const vw = ui.preview.videoWidth;
+    const vh = ui.preview.videoHeight;
+    const sx = Math.max(0, Math.min(vw - 1, Math.round(x)));
+    const sy = Math.max(0, Math.min(vh - 1, Math.round(y)));
+    const sw = Math.max(1, Math.min(vw - sx, Math.round(w)));
+    const sh = Math.max(1, Math.min(vh - sy, Math.round(h)));
+    const c = document.createElement('canvas');
+    c.width = sw;
+    c.height = sh;
+    c.getContext('2d').drawImage(ui.preview, sx, sy, sw, sh, 0, 0, sw, sh);
+    return c.toDataURL('image/png');
+  },
+};
+
+renderLadder();
+renderAdaptive();
+renderState();
+</script>
+</body>
+</html>

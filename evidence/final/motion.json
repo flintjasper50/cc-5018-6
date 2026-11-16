@@ -1,0 +1,3554 @@
+{
+  "scenario": "motion",
+  "room": "MOT-mwin3gr6",
+  "static": {
+    "crops": {
+      "presFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "viewFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "scale": 1,
+      "stripRect": {
+        "x": 8,
+        "y": 960,
+        "w": 592,
+        "h": 112,
+        "scaled": true,
+        "refined": false
+      },
+      "textRect": {
+        "x": 66,
+        "y": 140,
+        "w": 820,
+        "h": 300,
+        "scaled": true,
+        "refined": false
+      }
+    },
+    "encodeFps": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "targetFps": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "meanMotion": 0.05667222222222222,
+    "samples": [
+      {
+        "at": 1794795846956,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.06448,
+            "estimateKbps": 6023,
+            "rawEstimateKbps": 6143,
+            "slope": -58,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 183,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 73,
+            "queueDelayMs": 0,
+            "rttMs": 7,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 16.705,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 183,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 29,
+            "decodeFps": 2.03,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3397401,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795846930
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 42,
+            "p50": 321,
+            "p95": 644,
+            "max": 881,
+            "mean": 372
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 483,
+            "p95": 762,
+            "max": 881,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3675.5290603871754,
+            "inkRatio": 0.020278861788617895,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420161,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 321,
+              "at": 1794795845141
+            },
+            {
+              "ticks": 420186,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 346,
+              "at": 1794795845580
+            },
+            {
+              "ticks": 420209,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 369,
+              "at": 1794795845941
+            },
+            {
+              "ticks": 420209,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 369,
+              "at": 1794795846337
+            },
+            {
+              "ticks": 420235,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 395,
+              "at": 1794795846739
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795847959,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.05032,
+            "estimateKbps": 6012,
+            "rawEstimateKbps": 6143,
+            "slope": -39,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 185,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 72,
+            "queueDelayMs": 0,
+            "rttMs": 7,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 17.709,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 185,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 27,
+            "decodeFps": 1.97,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3406344,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795847942
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 45,
+            "p50": 323,
+            "p95": 644,
+            "max": 881,
+            "mean": 376.9
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 483,
+            "p95": 762,
+            "max": 881,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3650.3711422434,
+            "inkRatio": 0.020279166666666675,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420209,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 369,
+              "at": 1794795846337
+            },
+            {
+              "ticks": 420235,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 395,
+              "at": 1794795846739
+            },
+            {
+              "ticks": 420260,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 420,
+              "at": 1794795847139
+            },
+            {
+              "ticks": 420285,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 445,
+              "at": 1794795847543
+            },
+            {
+              "ticks": 420310,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 470,
+              "at": 1794795847938
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795848964,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.05373,
+            "estimateKbps": 6003,
+            "rawEstimateKbps": 6143,
+            "slope": -27,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 187,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 72,
+            "queueDelayMs": 0,
+            "rttMs": 5,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 18.714,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 187,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 24,
+            "decodeFps": 2.03,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3415350,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795848930
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 47,
+            "p50": 323,
+            "p95": 644,
+            "max": 881,
+            "mean": 379.6
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 544,
+            "p95": 762,
+            "max": 881,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3632.377856445655,
+            "inkRatio": 0.020303556910569114,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420260,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 420,
+              "at": 1794795847139
+            },
+            {
+              "ticks": 420285,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 445,
+              "at": 1794795847543
+            },
+            {
+              "ticks": 420310,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 470,
+              "at": 1794795847938
+            },
+            {
+              "ticks": 420335,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 495,
+              "at": 1794795848338
+            },
+            {
+              "ticks": 420335,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 495,
+              "at": 1794795848735
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795849968,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.05935,
+            "estimateKbps": 6028,
+            "rawEstimateKbps": 6143,
+            "slope": -6,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 189,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 75,
+            "queueDelayMs": 0,
+            "rttMs": 5,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 19.718,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 189,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 24,
+            "decodeFps": 1.98,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3424648,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795849945
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 50,
+            "p50": 342,
+            "p95": 644,
+            "max": 881,
+            "mean": 383.4
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 465,
+            "p95": 644,
+            "max": 762,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3639.1147808482274,
+            "inkRatio": 0.02032123983739838,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420335,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 495,
+              "at": 1794795848338
+            },
+            {
+              "ticks": 420335,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 495,
+              "at": 1794795848735
+            },
+            {
+              "ticks": 420360,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 520,
+              "at": 1794795849138
+            },
+            {
+              "ticks": 420385,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 545,
+              "at": 1794795849539
+            },
+            {
+              "ticks": 420410,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 570,
+              "at": 1794795849938
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795850972,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.06023,
+            "estimateKbps": 6049,
+            "rawEstimateKbps": 6143,
+            "slope": 5,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 191,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 76,
+            "queueDelayMs": 0,
+            "rttMs": 5,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 20.722,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 191,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 24,
+            "decodeFps": 2.02,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3434135,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795850929
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 52,
+            "p50": 343,
+            "p95": 645,
+            "max": 881,
+            "mean": 395.3
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 544,
+            "p95": 739,
+            "max": 762,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3627.824045045841,
+            "inkRatio": 0.02038932926829269,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420360,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 520,
+              "at": 1794795849138
+            },
+            {
+              "ticks": 420385,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 545,
+              "at": 1794795849539
+            },
+            {
+              "ticks": 420410,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 570,
+              "at": 1794795849938
+            },
+            {
+              "ticks": 420410,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 570,
+              "at": 1794795850334
+            },
+            {
+              "ticks": 420435,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 595,
+              "at": 1794795850740
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795851976,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.0492,
+            "estimateKbps": 6066,
+            "rawEstimateKbps": 6143,
+            "slope": 10,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 193,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 108,
+            "queueDelayMs": 0,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 21.726,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 193,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 39,
+            "decodeFps": 1.98,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3447637,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795851941
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 55,
+            "p50": 343,
+            "p95": 645,
+            "max": 881,
+            "mean": 399.5
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 499,
+            "p95": 645,
+            "max": 739,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3576.545103269691,
+            "inkRatio": 0.020365853658536597,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420410,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 570,
+              "at": 1794795850334
+            },
+            {
+              "ticks": 420435,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 595,
+              "at": 1794795850740
+            },
+            {
+              "ticks": 420460,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 620,
+              "at": 1794795851172
+            },
+            {
+              "ticks": 420483,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 643,
+              "at": 1794795851554
+            },
+            {
+              "ticks": 420510,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 670,
+              "at": 1794795851937
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795852981,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.05293,
+            "estimateKbps": 6080,
+            "rawEstimateKbps": 6143,
+            "slope": 11,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 195,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 69,
+            "queueDelayMs": 0,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 22.729,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 195,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 34,
+            "decodeFps": 2.02,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3456276,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795852930
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 57,
+            "p50": 342,
+            "p95": 645,
+            "max": 881,
+            "mean": 392.3
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 499,
+            "p95": 645,
+            "max": 739,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3570.512352371462,
+            "inkRatio": 0.020323170731707325,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420460,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 620,
+              "at": 1794795851172
+            },
+            {
+              "ticks": 420483,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 643,
+              "at": 1794795851554
+            },
+            {
+              "ticks": 420510,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 670,
+              "at": 1794795851937
+            },
+            {
+              "ticks": 420535,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 695,
+              "at": 1794795852337
+            },
+            {
+              "ticks": 420560,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 720,
+              "at": 1794795852739
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795853984,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.05948,
+            "estimateKbps": 6091,
+            "rawEstimateKbps": 6143,
+            "slope": 11,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 197,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 70,
+            "queueDelayMs": 0,
+            "rttMs": 8,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 23.734,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 197,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 30,
+            "decodeFps": 1.97,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3465009,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795853942
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 60,
+            "p50": 343,
+            "p95": 645,
+            "max": 881,
+            "mean": 394.8
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 444,
+            "p95": 645,
+            "max": 739,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3609.0616589940446,
+            "inkRatio": 0.020553963414634155,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420535,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 695,
+              "at": 1794795852337
+            },
+            {
+              "ticks": 420560,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 720,
+              "at": 1794795852739
+            },
+            {
+              "ticks": 420560,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 720,
+              "at": 1794795853133
+            },
+            {
+              "ticks": 420585,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 745,
+              "at": 1794795853538
+            },
+            {
+              "ticks": 420610,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 770,
+              "at": 1794795853939
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795854987,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 2,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 2,
+            "motionScore": 0.06033,
+            "estimateKbps": 6101,
+            "rawEstimateKbps": 6143,
+            "slope": 11,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 2,
+            "sentFrames": 199,
+            "sentFramesDelta": 2,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6143,
+            "bytesSentKbps": 72,
+            "queueDelayMs": 0,
+            "rttMs": 8,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 2
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 24.738,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 199,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 27,
+            "decodeFps": 2.03,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 3474015,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795854930
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 62,
+            "p50": 343,
+            "p95": 645,
+            "max": 881,
+            "mean": 396.3
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 499,
+            "p95": 645,
+            "max": 739,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3609.3364865214544,
+            "inkRatio": 0.02055701219512196,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420560,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 720,
+              "at": 1794795853133
+            },
+            {
+              "ticks": 420585,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 745,
+              "at": 1794795853538
+            },
+            {
+              "ticks": 420610,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 770,
+              "at": 1794795853939
+            },
+            {
+              "ticks": 420635,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 795,
+              "at": 1794795854337
+            },
+            {
+              "ticks": 420635,
+              "scrollTop": 0,
+              "mode": "static",
+              "seq": 795,
+              "at": 1794795854736
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "fast": {
+    "crops": {
+      "presFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "viewFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "scale": 1,
+      "stripRect": {
+        "x": 8,
+        "y": 960,
+        "w": 592,
+        "h": 112,
+        "scaled": true,
+        "refined": false
+      },
+      "textRect": {
+        "x": 66,
+        "y": 140,
+        "w": 820,
+        "h": 300,
+        "scaled": true,
+        "refined": false
+      }
+    },
+    "encodeFps": [
+      15,
+      15,
+      15,
+      15,
+      7.9,
+      16.3,
+      15,
+      15,
+      15
+    ],
+    "targetFps": [
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15
+    ],
+    "meanMotion": 0.31646555555555556,
+    "samples": [
+      {
+        "at": 1794795859498,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.25577,
+            "estimateKbps": 6136,
+            "rawEstimateKbps": 6393,
+            "slope": 7,
+            "encodeQueueDelayMs": 2,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 228,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 4167,
+            "availableKbps": 6393,
+            "bytesSentKbps": 3594,
+            "queueDelayMs": 1.6,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 29.247,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 229,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 33,
+            "decodeFps": 15.19,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 4480869,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795858930
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 73,
+            "p50": 343,
+            "p95": 645,
+            "max": 1043,
+            "mean": 393.8
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 343,
+            "p95": 645,
+            "max": 1043,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3590.022793181108,
+            "inkRatio": 0.020430792682926836,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420795,
+              "scrollTop": 96,
+              "mode": "scroll",
+              "seq": 955,
+              "at": 1794795857539
+            },
+            {
+              "ticks": 420818,
+              "scrollTop": 128,
+              "mode": "scroll",
+              "seq": 978,
+              "at": 1794795857939
+            },
+            {
+              "ticks": 420839,
+              "scrollTop": 192,
+              "mode": "scroll",
+              "seq": 999,
+              "at": 1794795858337
+            },
+            {
+              "ticks": 420859,
+              "scrollTop": 224,
+              "mode": "scroll",
+              "seq": 1019,
+              "at": 1794795858737
+            },
+            {
+              "ticks": 420879,
+              "scrollTop": 288,
+              "mode": "scroll",
+              "seq": 15,
+              "at": 1794795859137
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795860502,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.29422,
+            "estimateKbps": 6137,
+            "rawEstimateKbps": 6393,
+            "slope": 5,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 243,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6393,
+            "bytesSentKbps": 3811,
+            "queueDelayMs": 0,
+            "rttMs": 5,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 30.253,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 244,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 30,
+            "decodeFps": 14.85,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 5016726,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795859939
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 76,
+            "p50": 342,
+            "p95": 645,
+            "max": 1043,
+            "mean": 384.6
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 184,
+            "p95": 645,
+            "max": 1043,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3599.434494418894,
+            "inkRatio": 0.020456707317073174,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420859,
+              "scrollTop": 224,
+              "mode": "scroll",
+              "seq": 1019,
+              "at": 1794795858737
+            },
+            {
+              "ticks": 420879,
+              "scrollTop": 288,
+              "mode": "scroll",
+              "seq": 15,
+              "at": 1794795859137
+            },
+            {
+              "ticks": 420899,
+              "scrollTop": 320,
+              "mode": "scroll",
+              "seq": 35,
+              "at": 1794795859537
+            },
+            {
+              "ticks": 420919,
+              "scrollTop": 384,
+              "mode": "scroll",
+              "seq": 55,
+              "at": 1794795859936
+            },
+            {
+              "ticks": 420939,
+              "scrollTop": 416,
+              "mode": "scroll",
+              "seq": 75,
+              "at": 1794795860336
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795861507,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.311,
+            "estimateKbps": 6138,
+            "rawEstimateKbps": 6771,
+            "slope": 3,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 258,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6771,
+            "bytesSentKbps": 3772,
+            "queueDelayMs": 0.4,
+            "rttMs": 5,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 31.257,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 259,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 20,
+            "decodeFps": 15.15,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 5447044,
+            "pair": {
+              "rttMs": 6,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795860930
+          },
+          "pair": {
+            "rttMs": 6,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 78,
+            "p50": 342,
+            "p95": 645,
+            "max": 1043,
+            "mean": 378.3
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 162,
+            "p95": 645,
+            "max": 1043,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3550.1415665408276,
+            "inkRatio": 0.020262398373983744,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420899,
+              "scrollTop": 320,
+              "mode": "scroll",
+              "seq": 35,
+              "at": 1794795859537
+            },
+            {
+              "ticks": 420919,
+              "scrollTop": 384,
+              "mode": "scroll",
+              "seq": 55,
+              "at": 1794795859936
+            },
+            {
+              "ticks": 420939,
+              "scrollTop": 416,
+              "mode": "scroll",
+              "seq": 75,
+              "at": 1794795860336
+            },
+            {
+              "ticks": 420960,
+              "scrollTop": 448,
+              "mode": "scroll",
+              "seq": 96,
+              "at": 1794795860737
+            },
+            {
+              "ticks": 420980,
+              "scrollTop": 512,
+              "mode": "scroll",
+              "seq": 116,
+              "at": 1794795861135
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795862625,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.31531,
+            "estimateKbps": 6141,
+            "rawEstimateKbps": 5859,
+            "slope": 3,
+            "encodeQueueDelayMs": 1,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 273,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 5859,
+            "bytesSentKbps": 3926,
+            "queueDelayMs": 0.6,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 32.29,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 274,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 25,
+            "decodeFps": 14.82,
+            "freezeCount": 9,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 5951613,
+            "pair": {
+              "rttMs": 7,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795861942
+          },
+          "pair": {
+            "rttMs": 7,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 81,
+            "p50": 323,
+            "p95": 645,
+            "max": 1043,
+            "mean": 371.5
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 162,
+            "p95": 244,
+            "max": 290,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3572.3563158836214,
+            "inkRatio": 0.020274390243902447,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 420960,
+              "scrollTop": 448,
+              "mode": "scroll",
+              "seq": 96,
+              "at": 1794795860737
+            },
+            {
+              "ticks": 420980,
+              "scrollTop": 512,
+              "mode": "scroll",
+              "seq": 116,
+              "at": 1794795861135
+            },
+            {
+              "ticks": 421000,
+              "scrollTop": 544,
+              "mode": "scroll",
+              "seq": 136,
+              "at": 1794795861540
+            },
+            {
+              "ticks": 421020,
+              "scrollTop": 544,
+              "mode": "scroll",
+              "seq": 156,
+              "at": 1794795861939
+            },
+            {
+              "ticks": 421036,
+              "scrollTop": 576,
+              "mode": "scroll",
+              "seq": 172,
+              "at": 1794795862405
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795863634,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.33402,
+            "estimateKbps": 6147,
+            "rawEstimateKbps": 6173,
+            "slope": 4,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 7.9,
+            "sentFrames": 281,
+            "sentFramesDelta": 8,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6173,
+            "bytesSentKbps": 2384,
+            "queueDelayMs": 0.4,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 33.383,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 282,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 39,
+            "decodeFps": 8.08,
+            "freezeCount": 10,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 6273546,
+            "pair": {
+              "rttMs": 7,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795862933
+          },
+          "pair": {
+            "rttMs": 7,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 84,
+            "p50": 327,
+            "p95": 645,
+            "max": 1043,
+            "mean": 374.8
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 162,
+            "p95": 504,
+            "max": 566,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3565.6569884876835,
+            "inkRatio": 0.020251524390243907,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 421020,
+              "scrollTop": 544,
+              "mode": "scroll",
+              "seq": 156,
+              "at": 1794795861939
+            },
+            {
+              "ticks": 421036,
+              "scrollTop": 576,
+              "mode": "scroll",
+              "seq": 172,
+              "at": 1794795862405
+            },
+            {
+              "ticks": 421040,
+              "scrollTop": 576,
+              "mode": "scroll",
+              "seq": 176,
+              "at": 1794795862761
+            },
+            {
+              "ticks": 421062,
+              "scrollTop": 608,
+              "mode": "scroll",
+              "seq": 198,
+              "at": 1794795863139
+            },
+            {
+              "ticks": 421091,
+              "scrollTop": 608,
+              "mode": "scroll",
+              "seq": 227,
+              "at": 1794795863542
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795864664,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.33772,
+            "estimateKbps": 6151,
+            "rawEstimateKbps": 6173,
+            "slope": 4,
+            "encodeQueueDelayMs": 0,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 16.3,
+            "sentFrames": 297,
+            "sentFramesDelta": 16,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6173,
+            "bytesSentKbps": 3817,
+            "queueDelayMs": 0,
+            "rttMs": 6,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 34.399,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 296,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 27,
+            "decodeFps": 13.91,
+            "freezeCount": 10,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 6738388,
+            "pair": {
+              "rttMs": 7,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795863940
+          },
+          "pair": {
+            "rttMs": 7,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 86,
+            "p50": 325,
+            "p95": 645,
+            "max": 1043,
+            "mean": 373.6
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 290,
+            "p95": 504,
+            "max": 566,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3588.638771295028,
+            "inkRatio": 0.02028099593495935,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 421040,
+              "scrollTop": 576,
+              "mode": "scroll",
+              "seq": 176,
+              "at": 1794795862761
+            },
+            {
+              "ticks": 421062,
+              "scrollTop": 608,
+              "mode": "scroll",
+              "seq": 198,
+              "at": 1794795863139
+            },
+            {
+              "ticks": 421091,
+              "scrollTop": 608,
+              "mode": "scroll",
+              "seq": 227,
+              "at": 1794795863542
+            },
+            {
+              "ticks": 421111,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 247,
+              "at": 1794795863936
+            },
+            {
+              "ticks": 421131,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 267,
+              "at": 1794795864337
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795865667,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.33066,
+            "estimateKbps": 6165,
+            "rawEstimateKbps": 6229,
+            "slope": 8,
+            "encodeQueueDelayMs": 1,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 312,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6229,
+            "bytesSentKbps": 4220,
+            "queueDelayMs": 0.5,
+            "rttMs": 7,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 35.417,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 311,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 27,
+            "decodeFps": 15.15,
+            "freezeCount": 10,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 7273944,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795864930
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 89,
+            "p50": 322,
+            "p95": 645,
+            "max": 1043,
+            "mean": 371.8
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 320,
+            "p95": 504,
+            "max": 566,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3617.6408652054683,
+            "inkRatio": 0.02017510162601626,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 421111,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 247,
+              "at": 1794795863936
+            },
+            {
+              "ticks": 421131,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 267,
+              "at": 1794795864337
+            },
+            {
+              "ticks": 421151,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 287,
+              "at": 1794795864735
+            },
+            {
+              "ticks": 421171,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 307,
+              "at": 1794795865136
+            },
+            {
+              "ticks": 421191,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 327,
+              "at": 1794795865535
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795866670,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.33335,
+            "estimateKbps": 6177,
+            "rawEstimateKbps": 6809,
+            "slope": 9,
+            "encodeQueueDelayMs": 2,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 327,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 6809,
+            "bytesSentKbps": 4198,
+            "queueDelayMs": 1.8,
+            "rttMs": 7,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 36.42,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 326,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 28,
+            "decodeFps": 14.86,
+            "freezeCount": 10,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 7762211,
+            "pair": {
+              "rttMs": 8,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795865939
+          },
+          "pair": {
+            "rttMs": 8,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 91,
+            "p50": 321,
+            "p95": 645,
+            "max": 1043,
+            "mean": 370.7
+          },
+          "latencyRecent": {
+            "n": 12,
+            "p50": 321,
+            "p95": 504,
+            "max": 566,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3624.222213966333,
+            "inkRatio": 0.020215955284552844,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 421151,
+              "scrollTop": 640,
+              "mode": "scroll",
+              "seq": 287,
+              "at": 1794795864735
+            },
+            {
+              "ticks": 421171,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 307,
+              "at": 1794795865136
+            },
+            {
+              "ticks": 421191,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 327,
+              "at": 1794795865535
+            },
+            {
+              "ticks": 421211,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 347,
+              "at": 1794795865936
+            },
+            {
+              "ticks": 421231,
+              "scrollTop": 704,
+              "mode": "scroll",
+              "seq": 367,
+              "at": 1794795866336
+            }
+          ]
+        }
+      },
+      {
+        "at": 1794795867674,
+        "presenter": {
+          "state": "live",
+          "detail": "viewer connected",
+          "lastEndReason": null,
+          "room": "MOT-mwin3gr6",
+          "viewers": 1,
+          "capture": {
+            "width": 1920,
+            "height": 1080,
+            "frameRate": 15,
+            "displaySurface": "monitor",
+            "deviceId": "screen:0:0",
+            "resizeMode": "none"
+          },
+          "adaptive": {
+            "ladderIndex": 2,
+            "resolution": "1080p",
+            "maxKbps": 5000,
+            "floorResolution": "360p",
+            "targetFps": 15,
+            "motionScore": 0.33614,
+            "estimateKbps": 6175,
+            "rawEstimateKbps": 5648,
+            "slope": 5,
+            "encodeQueueDelayMs": 2,
+            "dropRate": 0,
+            "retransmitRatio": 0,
+            "lossRate": 0,
+            "probing": false,
+            "probeFailures": 0,
+            "qualityLimitation": "none",
+            "historyTail": [],
+            "noticesTail": []
+          },
+          "sender": {
+            "encodedWidth": 1920,
+            "encodedHeight": 1080,
+            "encodeFps": 15,
+            "sentFrames": 342,
+            "sentFramesDelta": 15,
+            "targetBitrateKbps": 5000,
+            "availableKbps": 5648,
+            "bytesSentKbps": 4054,
+            "queueDelayMs": 1.9,
+            "rttMs": 7,
+            "retransmitRatio": 0,
+            "qualityLimitation": "none",
+            "captureWidth": 1920,
+            "captureHeight": 1080,
+            "captureFrameRate": 15
+          },
+          "pc": {
+            "connectionState": "connected",
+            "ice": "connected"
+          }
+        },
+        "viewer": {
+          "state": "live",
+          "stateText": "frames resumed",
+          "presenterState": {
+            "t": "state",
+            "state": "live",
+            "reason": null,
+            "detail": "viewer connected",
+            "at": 1794795830003,
+            "from": "e25cf75a-a2fa-4d1e-aad4-b4ec0eeb329a"
+          },
+          "video": {
+            "width": 1920,
+            "height": 1080,
+            "time": 37.424,
+            "paused": false,
+            "hasStream": true,
+            "stale": false,
+            "readyState": 4
+          },
+          "stats": {
+            "framesDecoded": 341,
+            "framesDropped": 0,
+            "frameWidth": 1920,
+            "frameHeight": 1080,
+            "packetsLost": 0,
+            "jitterMs": 27,
+            "decodeFps": 15.15,
+            "freezeCount": 10,
+            "nackCount": 0,
+            "pliCount": 0,
+            "bytesReceived": 8299326,
+            "pair": {
+              "rttMs": 5,
+              "availableOutgoingKbps": 300,
+              "localType": "relay",
+              "remoteType": "relay",
+              "protocol": "udp",
+              "localAddress": "127.0.0.1",
+              "remoteAddress": "127.0.0.1",
+              "relayProtocol": "udp"
+            },
+            "at": 1794795866929
+          },
+          "pair": {
+            "rttMs": 5,
+            "availableOutgoingKbps": 300,
+            "localType": "relay",
+            "remoteType": "relay",
+            "protocol": "udp",
+            "localAddress": "127.0.0.1",
+            "remoteAddress": "127.0.0.1",
+            "relayProtocol": "udp"
+          },
+          "latency": {
+            "n": 94,
+            "p50": 321,
+            "p95": 645,
+            "max": 1043,
+            "mean": 368.6
+          },
+          "latencyRecent": {
+            "n": 13,
+            "p50": 321,
+            "p95": 504,
+            "max": 566,
+            "windowMs": 5000
+          },
+          "read": {
+            "sharpness": 3647.9610670035354,
+            "inkRatio": 0.020236178861788613,
+            "decodeOk": 1,
+            "n": 40,
+            "frameWidth": 1920,
+            "frameHeight": 1080
+          },
+          "frozenEpisodes": 1,
+          "frameGapsMs": [],
+          "stripRect": {
+            "x": 8,
+            "y": 960,
+            "w": 592,
+            "h": 112,
+            "scaled": true,
+            "refined": false
+          },
+          "textRect": {
+            "x": 66,
+            "y": 140,
+            "w": 820,
+            "h": 300,
+            "scaled": true,
+            "refined": false
+          },
+          "decodeTail": [
+            {
+              "ticks": 421211,
+              "scrollTop": 672,
+              "mode": "scroll",
+              "seq": 347,
+              "at": 1794795865936
+            },
+            {
+              "ticks": 421231,
+              "scrollTop": 704,
+              "mode": "scroll",
+              "seq": 367,
+              "at": 1794795866336
+            },
+            {
+              "ticks": 421251,
+              "scrollTop": 736,
+              "mode": "scroll",
+              "seq": 387,
+              "at": 1794795866734
+            },
+            {
+              "ticks": 421272,
+              "scrollTop": 736,
+              "mode": "scroll",
+              "seq": 408,
+              "at": 1794795867135
+            },
+            {
+              "ticks": 421292,
+              "scrollTop": 768,
+              "mode": "scroll",
+              "seq": 428,
+              "at": 1794795867535
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "conclusion": {
+    "staticMeanFps": 2,
+    "fastMeanFps": 14.355555555555554
+  }
+}

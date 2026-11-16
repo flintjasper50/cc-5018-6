@@ -1,0 +1,79 @@
+{
+  "scenario": "states",
+  "rooms": {
+    "denial": "STATE-mwin6oyw-DENY",
+    "ended": "STATE-mwin6oyw",
+    "signaling": "STATE-mwin6oyw-SIG"
+  },
+  "permissionDenied": {
+    "presenterState": "permission-denied",
+    "hasStream": false
+  },
+  "trackEnded": {
+    "presenterStateBefore": {
+      "t": "state",
+      "state": "live",
+      "reason": null,
+      "detail": "viewer connected",
+      "at": 1794795992536,
+      "from": "1c220717-2103-40ca-8fd8-68baaa7d5e67"
+    },
+    "viewerStateBefore": "live",
+    "viewerVideoBefore": {
+      "width": 1920,
+      "height": 1080,
+      "time": 10.042,
+      "paused": false,
+      "hasStream": true,
+      "stale": false,
+      "readyState": 4
+    },
+    "presenterStateAfter": "ended",
+    "viewerStateAfter": "ended",
+    "viewerVideoAfter": {
+      "hasStream": false,
+      "width": 0,
+      "height": 0,
+      "stale": true,
+      "overlayVisible": true,
+      "overlayTitle": "直播已结束"
+    },
+    "cropsBefore": {
+      "presFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "viewFrame": {
+        "w": 1920,
+        "h": 1080
+      },
+      "scale": 1,
+      "stripRect": {
+        "x": 8,
+        "y": 960,
+        "w": 592,
+        "h": 112,
+        "scaled": true,
+        "refined": false
+      },
+      "textRect": {
+        "x": 66,
+        "y": 140,
+        "w": 820,
+        "h": 300,
+        "scaled": true,
+        "refined": false
+      }
+    }
+  },
+  "signalingLost": {
+    "viewerStateBefore": "live",
+    "presenterStateAfter": "signaling-disconnected",
+    "viewerStateAfter": "signal-lost",
+    "viewerVideoAfter": {
+      "hasStream": false,
+      "stale": true,
+      "overlayTitle": "与服务器断开"
+    }
+  }
+}

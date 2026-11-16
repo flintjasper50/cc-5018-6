@@ -1,0 +1,34 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "Screen-share demo livestream: real getDisplayMedia capture over WebRTC with adaptive quality, latency and text-readability measurement",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/main.mjs",
+    "up": "./scripts/dev-up.sh",
+    "down": "./scripts/dev-down.sh",
+    "fixture:up": "./scripts/fixture-up.sh",
+    "fixture:down": "./scripts/fixture-down.sh",
+    "experiment": "node scripts/experiment.mjs --scenario all",
+    "report": "node scripts/report.mjs evidence/final"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cinderrapid8/cc-5018-6.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cinderrapid8/cc-5018-6/issues"
+  },
+  "homepage": "https://github.com/cinderrapid8/cc-5018-6#readme",
+  "devDependencies": {
+    "playwright-core": "^1.65.1"
+  },
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "ws": "^8.23.0"
+  },
+  "type": "module"
+}

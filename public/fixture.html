@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>演示素材 · 细字 / 滚动 / 动态图表</title>
+<style>
+  :root {
+    --ink: #12151a;
+    --muted: #5c6673;
+    --rule: #d6dbe2;
+    --code-bg: #fbfcfd;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--ink);
+    font-family: "DejaVu Sans", system-ui, sans-serif;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 44px 1fr;
+    grid-template-columns: 1fr 380px;
+    grid-template-areas: "bar bar" "editor side";
+  }
+  header {
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--rule);
+    background: #f4f6f9;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  header .title { font-weight: 700; color: var(--ink); font-size: 14px; }
+  header .pill {
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 2px 9px;
+    background: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  header .spacer { flex: 1; }
+  #editor {
+    grid-area: editor;
+    overflow: hidden;
+    position: relative;
+    background: var(--code-bg);
+    border-right: 1px solid var(--rule);
+  }
+  #scroller { will-change: transform; }
+  #code {
+    padding: 12px 18px 220px 66px;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 12px;
+    line-height: 17px;
+    tab-size: 2;
+    color: #1d2430;
+  }
+  #code .ln {
+    position: absolute;
+    left: 0;
+    width: 52px;
+    padding-right: 12px;
+    text-align: right;
+    font-size: 11px;
+    color: #98a3b1;
+    user-select: none;
+  }
+  #code .row { position: relative; height: 17px; white-space: pre; }
+  .kw { color: #a626a4; font-weight: 700; }
+  .str { color: #0a7d33; }
+  .num { color: #b45309; }
+  .cmt { color: #7a8694; font-style: italic; }
+  .fn { color: #0b5cd5; }
+  aside {
+    grid-area: side;
+    padding: 10px 12px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 8px;
+  }
+  aside h2 {
+    font-size: 12px;
+    margin: 0;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chart-box {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 6px;
+    background: #fff;
+  }
+  canvas { display: block; width: 100%; }
+  .legend {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+  #calib-wrap {
+    position: fixed;
+    left: 8px;
+    bottom: 8px;
+    z-index: 50;
+    outline: 2px solid #000;
+    outline-offset: 2px;
+    background: #fff;
+  }
+  #calib { width: 592px; height: 112px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">payments-service / retry.ts</span>
+  <span class="pill" id="mode-pill">mode: mixed</span>
+  <span class="pill" id="fps-pill">render: -- fps</span>
+  <span class="pill" id="scroll-pill">scroll: 0 px</span>
+  <span class="spacer"></span>
+  <span class="pill" id="clock">--:--:--</span>
+</header>
+
+<section id="editor">
+  <div id="scroller"><div id="code"></div></div>
+</section>
+
+<aside>
+  <h2>实时指标</h2>
+  <div class="chart-box"><canvas id="chartA" width="700" height="230"></canvas></div>
+  <div class="chart-box"><canvas id="chartB" width="700" height="200"></canvas></div>
+  <div class="legend" id="legend">动态图表</div>
+</aside>
+
+<div id="calib-wrap"><canvas id="calib" width="592" height="112"></canvas></div>
+
+<script type="module">
+import {
+  STRIP_COLS, STRIP_ROWS, STRIP_BLOCK_PX, STRIP_QUIET_PX, encodePayload,
+} from './shared/calib.js';
+
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || 'mixed';
+const scrollSpeed = Number(params.get('speed') || 42);
+const chartHz = Number(params.get('chartHz') || 12);
+const totalRows = Number(params.get('rows') || 2400);
+// The harness flips these at scenario boundaries without reloading the page.
+let actualMode = mode;
+let scrolling = true;
+let scrollSpeedActual = scrollSpeed;
+let actualChartHz = chartHz;
+const DOM_ROWS = 420; // rows kept mounted; the offset is baked into line numbers
+
+const modePill = document.getElementById('mode-pill');
+const fpsPill = document.getElementById('fps-pill');
+const scrollPill = document.getElementById('scroll-pill');
+const clockEl = document.getElementById('clock');
+const legend = document.getElementById('legend');
+modePill.textContent = `mode: ${mode}`;
+
+const T0 = performance.now();
+const codeEl = document.getElementById('code');
+const scroller = document.getElementById('scroller');
+
+// ---------------- synthetic source text ----------------
+const SNIPPETS = [
+  ['export async function ', 'kw'],
+  ['retryWithBackoff', 'fn'],
+  ['(op: () => Promise<T>, options: RetryOptions)', ''],
+  [': Promise<T> {', ''],
+  ['  const startedAt = Date.now();', ''],
+  ['  let attempt = 0;', ''],
+  ['  while (true) {', ''],
+  ['    try {', ''],
+  ['      return await op();', ''],
+  ['    } catch (error) {', ''],
+  ['      attempt += 1;', ''],
+  ['      if (attempt >= options.maxAttempts) throw error;', ''],
+  ['      const delayMs = Math.min(options.baseMs * 2 ** attempt, 30_000);', ''],
+  ['      const jitter = delayMs * 0.2 * (Math.random() - 0.5);', ''],
+  ['      await sleep(delayMs + jitter);', ''],
+  ['    } finally {', ''],
+  ['      metrics.observe("retry.elapsed_ms", Date.now() - startedAt);', ''],
+  ['    }', ''],
+  ['  }', ''],
+  ['}', ''],
+];
+
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function rowHtml(i) {
+  const [text, cls] = SNIPPETS[i % SNIPPETS.length];
+  let suffix = '';
+  if (i % 5 === 0) {
+    suffix = ` // seq=${String(i % 997).padStart(3, '0')} budget=180ms window=${i % 13}`;
+  } else if (i % 7 === 0) {
+    suffix = ` // batch #${i % 89} partitions=${(i % 17) + 1} skew=+${(i % 9) / 10}ms`;
+  }
+  return `<div class="row"><span class="ln">${i + 1}</span><span class="${cls}">${esc(
+    text,
+  )}</span>${suffix ? `<span class="cmt">${esc(suffix)}</span>` : ''}</div>`;
+}
+
+let baseRow = 0;
+function paintRows(from) {
+  const parts = [];
+  for (let i = from; i < from + DOM_ROWS; i++) {
+    parts.push(rowHtml(i % totalRows));
+  }
+  codeEl.innerHTML = parts.join('');
+}
+
+// The DOM always starts at row `baseRow`, so the shim has to place row
+// `baseRow` at its true document offset (`baseRow * lineHeight`) minus the
+// current scroll position. Using `-scrollY` here would subtract the row offset
+// a second time and push the whole editor off-screen.
+function applyScrollPosition() {
+  const y = -(scrollY - baseRow * lineHeight);
+  scroller.style.transform = `translateY(${y}px)`;
+}
+paintRows(0);
+
+// ---------------- scrolling ----------------
+let scrollY = 0;
+const lineHeight = 17;
+const maxScroll = (totalRows - 30) * lineHeight;
+
+function advanceScroll(dt, now) {
+  if (!scrolling) return;
+  if (actualMode !== 'scroll' && actualMode !== 'mixed') return;
+  const velocity = scrollSpeedActual * (0.6 + 0.4 * Math.sin(now / 1800));
+  scrollY += (velocity * dt) / 1000;
+  if (scrollY > maxScroll) scrollY = 0;
+  const needsRepaint = Math.abs(Math.floor(scrollY / lineHeight) - baseRow) > 240;
+  if (needsRepaint) {
+    baseRow = Math.floor(scrollY / lineHeight);
+    paintRows(baseRow);
+  }
+  applyScrollPosition();
+}
+
+// ---------------- charts ----------------
+const chartA = document.getElementById('chartA');
+const chartB = document.getElementById('chartB');
+const actx = chartA.getContext('2d', { alpha: false });
+const bctx = chartB.getContext('2d', { alpha: false });
+
+function drawCharts(now) {
+  const t = (now - T0) / 1000;
+  const w = chartA.width;
+  const h = chartA.height;
+  actx.fillStyle = '#fff';
+  actx.fillRect(0, 0, w, h);
+  actx.strokeStyle = '#e3e7ec';
+  actx.lineWidth = 1;
+  actx.font = '10px "DejaVu Sans Mono", monospace';
+  for (let i = 0; i <= 6; i++) {
+    const y = Math.round(24 + (i * (h - 48)) / 6) + 0.5;
+    actx.beginPath();
+    actx.moveTo(44, y);
+    actx.lineTo(w - 10, y);
+    actx.stroke();
+    actx.fillStyle = '#7a8694';
+    actx.fillText(String(600 - i * 100), 4, y + 3);
+  }
+  const n = 120;
+  actx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const v =
+      55 +
+      26 * Math.sin(i / 7 + t * 1.7) +
+      12 * Math.sin(i / 2.3 + t * 3.1) +
+      5 * Math.sin(i / 1.1 + t * 6.3);
+    const x = 44 + (i * (w - 54)) / (n - 1);
+    const y = h - 24 - (v / 100) * (h - 48);
+    if (i === 0) actx.moveTo(x, y);
+    else actx.lineTo(x, y);
+  }
+  actx.strokeStyle = '#0b5cd5';
+  actx.lineWidth = 1.6;
+  actx.stroke();
+  actx.lineTo(w - 10, h - 24);
+  actx.lineTo(44, h - 24);
+  actx.closePath();
+  actx.fillStyle = 'rgba(11,92,213,0.10)';
+  actx.fill();
+
+  const w2 = chartB.width;
+  const h2 = chartB.height;
+  bctx.fillStyle = '#fff';
+  bctx.fillRect(0, 0, w2, h2);
+  const bars = 30;
+  const bw = (w2 - 54) / bars;
+  for (let i = 0; i < bars; i++) {
+    const v =
+      Math.max(
+        0.06,
+        Math.min(0.92, 0.35 + 0.3 * Math.sin(i / 3.2 + t * 2.4) + 0.2 * Math.sin(i / 1.3 + t * 5.1)),
+      );
+    const bh = v * (h2 - 46);
+    const x = 44 + i * bw;
+    bctx.fillStyle = i % 2 ? '#0b5cd5' : '#3f83e8';
+    bctx.fillRect(x, h2 - 22 - bh, bw - 2, bh);
+    if (i % 5 === 0) {
+      bctx.fillStyle = '#5c6673';
+      bctx.font = '9px "DejaVu Sans Mono", monospace';
+      bctx.fillText(`${Math.round(v * 100)}`, x, h2 - 8);
+    }
+  }
+  bctx.strokeStyle = '#e3e7ec';
+  bctx.beginPath();
+  bctx.moveTo(44, h2 - 21.5);
+  bctx.lineTo(w2 - 10, h2 - 21.5);
+  bctx.stroke();
+  legend.textContent = `动态图表 ${actualChartHz}Hz · 细网格 + 9-10px 标签 · 相位 ${t.toFixed(2)}s`;
+}
+
+// ---------------- calibration strip ----------------
+const calib = document.getElementById('calib');
+const cctx = calib.getContext('2d', { alpha: false });
+
+function drawCalib(now, scrollTop) {
+  const ticks = Math.floor((now - T0) / 20) & 0xffffff;
+  const seq = Math.floor((now - T0) / 20) & 0x3ff;
+  const { bits } = encodePayload({ ticks, scrollTop, mode: actualMode, seq });
+  cctx.fillStyle = '#fff';
+  cctx.fillRect(0, 0, calib.width, calib.height);
+  cctx.fillStyle = '#000';
+  for (let r = 0; r < STRIP_ROWS; r++) {
+    for (let c = 0; c < STRIP_COLS; c++) {
+      if (!bits[r * STRIP_COLS + c]) continue;
+      cctx.fillRect(
+        STRIP_QUIET_PX + c * STRIP_BLOCK_PX,
+        STRIP_QUIET_PX + r * STRIP_BLOCK_PX,
+        STRIP_BLOCK_PX,
+        STRIP_BLOCK_PX,
+      );
+    }
+  }
+}
+
+// ---------------- single paint loop ----------------
+let frames = 0;
+let fpsMark = performance.now();
+let last = performance.now();
+let lastChart = 0;
+
+function loop(now) {
+  const dt = Math.min(64, now - last);
+  last = now;
+  advanceScroll(dt, now);
+  drawCalib(now, scrollY);
+  if (now - lastChart >= 1000 / actualChartHz) {
+    lastChart = now;
+    drawCharts(now);
+  }
+  scrollPill.textContent = `scroll: ${Math.round(scrollY)} px`;
+  clockEl.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  frames++;
+  if (now - fpsMark >= 1000) {
+    fpsPill.textContent = `render: ${frames} fps`;
+    frames = 0;
+    fpsMark = now;
+  }
+  requestAnimationFrame(loop);
+}
+
+// Test hook: the harness asks the fixture to park at an exact scroll offset so
+// that a known text region can be compared between sender and receiver.
+window.__fixture = {
+  mode,
+  // Pause/resume the smooth scroll so a static-text scenario really is static.
+  setScrolling(on) {
+    scrolling = !!on;
+  },
+  setSpeed(px) {
+    scrollSpeedActual = px;
+  },
+  setChartHz(hz) {
+    actualChartHz = hz;
+  },
+  setMode(next) {
+    actualMode = next;
+    modePill.textContent = `mode: ${next}`;
+  },
+  setScroll(px) {
+    scrollY = Math.max(0, Math.min(maxScroll, px));
+    baseRow = Math.floor(scrollY / lineHeight);
+    paintRows(baseRow);
+    applyScrollPosition();
+  },
+  state() {
+    return {
+      mode: actualMode,
+      scrolling,
+      scrollY,
+      totalRows,
+      chartHz,
+      tMs: performance.now() - T0,
+      // Wall-clock epoch (ms) that corresponds to calibration tick 0. Both
+      // pages run on the same host clock, so the viewer can turn a decoded tick
+      // into the wall time at which that frame was rendered.
+      t0EpochMs: performance.timeOrigin + T0,
+      maxScroll: (totalRows - 30) * lineHeight,
+      lineHeight,
+      stripRect: (() => {
+        const r = document.getElementById('calib').getBoundingClientRect();
+        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+      })(),
+      viewport: { w: innerWidth, h: innerHeight },
+    };
+  },
+};
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
